@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="id" x-data="{ mobileMenu: false }">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='18' fill='%231A3328'/%3E%3Cpath d='M18 7c0 0-7 4.5-7 11s7 11 7 11' stroke='%23C4A882' stroke-width='1.8' stroke-linecap='round' fill='none'/%3E%3Cpath d='M18 7c0 0 7 4.5 7 11s-7 11-7 11' stroke='%23C4A882' stroke-width='1.8' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='18' cy='18' r='2.5' fill='%234A7C59'/%3E%3C/svg%3E"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fasilitas — Post Tropis Café & Space</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push, set, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyALMOQANjf8CvIgkXmPMVxXQmbjtX1ow6w",
+      authDomain: "cafe-1d5e0.firebaseapp.com",
+      databaseURL: "https://cafe-1d5e0-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cafe-1d5e0",
+      storageBucket: "cafe-1d5e0.firebasestorage.app",
+      messagingSenderId: "1085007904987",
+      appId: "1:1085007904987:web:a655466c09ca77e9708cfe"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+    window.FB = { db, ref, push, set, serverTimestamp };
+  </script>
+
+  <style>
+    :root {
+      --warm-white:#F9F5EF; --parchment:#EFE8D8; --charcoal:#2C2825;
+      --brown:#7C5C42; --brown-light:#A07850; --brown-pale:#D4B896;
+      --sage:#8A9B84; --green-dark:#1E3A2F; --green-mid:#2D5A40;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'DM Sans',sans-serif;background:var(--warm-white);color:var(--charcoal);overflow-x:hidden;}
+    h1,h2,h3,h4{font-family:'Playfair Display',serif;}
+
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:0.5;}
+
+    /* ── NAVBAR ── */
+    #navbar{position:fixed;top:0;left:0;right:0;z-index:100;transition:background 0.4s,box-shadow 0.4s;padding:1.1rem 1.5rem;}
+    #navbar.scrolled{background:rgba(249,245,239,0.94);backdrop-filter:blur(12px);box-shadow:0 1px 0 rgba(44,40,37,0.08);}
+    .nav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+    .nav-link{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--charcoal);opacity:0.7;transition:opacity 0.2s;text-decoration:none;}
+    .nav-link:hover{opacity:1;}
+    .nav-link.active{opacity:1;color:var(--brown-light);border-bottom:1px solid var(--brown-light);padding-bottom:2px;}
+    .nav-desktop{display:flex;align-items:center;gap:1.5rem;}
+    .nav-mobile-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px;}
+    .nav-mobile-toggle span{display:block;width:22px;height:1.5px;background:var(--charcoal);transition:all 0.3s;}
+    .mobile-menu{display:none;flex-direction:column;gap:1.25rem;padding:1.25rem 0 0.75rem;border-top:1px solid var(--parchment);margin-top:0.75rem;}
+    .mobile-menu.open{display:flex;}
+    @media(max-width:768px){
+      .nav-desktop{display:none;}
+      .nav-mobile-toggle{display:flex;}
+    }
+
+    /* ── HERO ── */
+    .hero{min-height:55vh;background:linear-gradient(135deg,var(--green-dark) 0%,var(--green-mid) 50%,#3D7A55 100%);display:flex;align-items:center;position:relative;overflow:hidden;padding:7rem 1.5rem 4rem;}
+    .hero::before{content:'';position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600&q=80') center/cover;opacity:0.12;mix-blend-mode:luminosity;}
+    .hero-inner{max-width:1280px;margin:0 auto;width:100%;position:relative;z-index:1;}
+    .hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(212,184,150,0.8);}
+    .hero-title{font-size:clamp(2.4rem,6vw,5rem);line-height:1.05;color:white;letter-spacing:-0.02em;margin:0.75rem 0 1rem;}
+    .hero-title em{font-style:italic;color:var(--brown-pale);}
+    .hero-desc{color:rgba(239,232,216,0.7);font-size:0.95rem;line-height:1.8;max-width:400px;margin-bottom:1.75rem;}
+
+    /* ── BUTTONS ── */
+    .btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.85rem 1.75rem;font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.25s;text-decoration:none;}
+    .btn-primary{background:var(--brown-light);color:white;}
+    .btn-primary:hover{background:var(--brown);transform:translateY(-2px);}
+    .btn-green{background:var(--green-mid);color:white;}
+    .btn-green:hover{background:var(--green-dark);}
+    .btn-dark{background:var(--charcoal);color:white;}
+    .btn-dark:hover{background:#1a1614;}
+    .btn-outline{background:transparent;color:white;border:1px solid rgba(255,255,255,0.35);}
+    .btn-outline:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.6);}
+    .btn-wa{background:#25D366;color:white;}
+    .btn-wa:hover{background:#1da851;}
+    .btn-full{width:100%;justify-content:center;}
+    .btn:disabled{background:#ccc;cursor:not-allowed;transform:none;}
+
+    /* ── SECTION LABEL ── */
+    .section-label{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--brown-light);}
+
+    /* ── PAYMENT STRIP ── */
+    .pay-strip{background:var(--charcoal);padding:0.85rem 1.5rem;}
+    .pay-strip-inner{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;justify-content:center;}
+    .pay-badge{display:flex;align-items:center;gap:0.35rem;padding:0.4rem 0.85rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.6);}
+
+    /* ── FASILITAS SECTION ── */
+    .fasi-section{padding:4rem 1.5rem;}
+    .fasi-inner{max-width:1280px;margin:0 auto;}
+    .fasi-heading{text-align:center;margin-bottom:3rem;}
+    .fasi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1.25rem;margin-bottom:2.5rem;}
+
+    /* ── FACILITY CARD ── */
+    .fasi-card{background:white;border:1px solid var(--parchment);overflow:hidden;transition:box-shadow 0.3s,transform 0.3s;display:flex;flex-direction:column;}
+    .fasi-card:hover{box-shadow:0 12px 40px rgba(44,40,37,0.12);transform:translateY(-3px);}
+    .fasi-card-head{padding:1.75rem;position:relative;overflow:hidden;}
+    .fasi-card-head.brown{background:linear-gradient(135deg,#5C3D28,var(--brown-light));}
+    .fasi-card-head.green{background:linear-gradient(135deg,var(--green-dark),var(--green-mid));}
+    .fasi-card-head.dark{background:linear-gradient(135deg,#1E1B18,#3C3028);}
+    .fasi-card-title{font-size:1.5rem;color:white;line-height:1.15;margin-bottom:0.35rem;}
+    .fasi-card-sub{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.5);}
+    .fasi-card-body{padding:1.5rem;flex:1;display:flex;flex-direction:column;}
+    .price-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;padding-bottom:1.25rem;border-bottom:1px solid var(--parchment);margin-bottom:1.25rem;}
+    .price-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(44,40,37,0.4);margin-bottom:0.3rem;}
+    .price-val{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--brown-light);line-height:1;}
+    .price-unit{font-family:'DM Mono',monospace;font-size:0.62rem;color:rgba(44,40,37,0.4);}
+    .fac-list{display:flex;flex-direction:column;gap:0.45rem;margin-bottom:1.25rem;flex:1;}
+    .fac-item{display:flex;align-items:center;gap:0.6rem;font-size:0.87rem;color:rgba(44,40,37,0.78);}
+    .fac-item::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--brown-light);flex-shrink:0;}
+    .fac-item.g::before{background:var(--sage);}
+
+    /* ── FASILITAS UMUM ── */
+    .umum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:1rem;}
+    .umum-item{display:flex;align-items:flex-start;gap:0.75rem;padding:1rem;background:white;border:1px solid var(--parchment);}
+    .umum-icon{font-size:1.4rem;flex-shrink:0;line-height:1;}
+    .umum-name{font-weight:600;font-size:0.88rem;margin-bottom:0.15rem;}
+    .umum-desc{font-size:0.76rem;color:rgba(44,40,37,0.5);line-height:1.4;}
+
+    /* ── WA BANNER ── */
+    .wa-banner{background:linear-gradient(135deg,var(--green-dark),var(--green-mid));padding:1.75rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1.25rem;margin-top:1.25rem;}
+    .wa-banner p{font-family:'Playfair Display',serif;font-size:1.2rem;color:white;}
+    .wa-banner small{display:block;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:rgba(255,255,255,0.55);margin-top:0.2rem;}
+
+    /* ── BOOKING SECTION ── */
+    .booking-section{background:var(--charcoal);padding:4rem 1.5rem;position:relative;overflow:hidden;}
+    .booking-section::before{content:'';position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=60') center/cover;opacity:0.06;}
+    .booking-head{text-align:center;margin-bottom:2.5rem;position:relative;z-index:1;}
+    .booking-box{background:white;padding:1.75rem;max-width:640px;margin:0 auto;position:relative;z-index:1;}
+    @media(min-width:768px){.booking-box{padding:2.5rem;}}
+
+    /* ── STEPS ── */
+    .steps{display:flex;position:relative;max-width:400px;margin:0 auto 2rem;}
+    .step{flex:1;position:relative;text-align:center;}
+    .step::after{content:'';position:absolute;top:15px;left:50%;width:100%;height:1px;background:rgba(255,255,255,0.15);z-index:0;}
+    .step:last-child::after{display:none;}
+    .step-num{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;font-size:0.72rem;display:flex;align-items:center;justify-content:center;margin:0 auto 0.4rem;position:relative;z-index:1;font-weight:600;transition:all 0.3s;}
+    .step.active .step-num{background:var(--brown-light);color:white;}
+    .step.done .step-num{background:var(--sage);color:white;}
+    .step-label{font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);}
+    .step.active .step-label{color:var(--brown-pale);}
+    .step.done .step-label{color:var(--sage);}
+
+    /* ── FORM ── */
+    .form-group{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.9rem;}
+    .form-label{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--brown);}
+    .form-input{border:1px solid var(--parchment);padding:0.65rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:0.9rem;color:var(--charcoal);background:white;outline:none;width:100%;transition:border-color 0.2s;}
+    .form-input:focus{border-color:var(--brown-light);}
+    select.form-input{cursor:pointer;}
+    textarea.form-input{resize:vertical;}
+    .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;}
+    @media(max-width:480px){.form-row-2{grid-template-columns:1fr;}}
+
+    /* ── STEP PANELS ── */
+    .step-panel{display:none;}
+    .step-panel.active{display:block;}
+    .step-title{font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1.25rem;}
+
+    /* ── PAYMENT METHOD ── */
+    .pay-method{border:1px solid var(--parchment);padding:0.9rem 1rem;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;}
+    .pay-method:hover{border-color:var(--brown-light);}
+    .pay-method.selected{border-color:var(--brown);background:rgba(124,92,66,0.05);}
+    .pay-method input[type=radio]{accent-color:var(--brown);width:16px;height:16px;flex-shrink:0;}
+
+    /* ── UPLOAD ── */
+    .upload-area{border:2px dashed var(--parchment);padding:1.5rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;position:relative;}
+    .upload-area:hover,.upload-area.drag-over{border-color:var(--brown-light);background:rgba(160,120,80,0.04);}
+    .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+    .upload-preview{max-width:100%;max-height:150px;margin-top:0.75rem;object-fit:contain;display:none;}
+
+    /* ── INFO BOX ── */
+    .info-box{background:var(--parchment);padding:1rem;margin:0.85rem 0;}
+    .info-box p{font-size:0.85rem;line-height:1.75;}
+
+    /* ── SUMMARY ── */
+    .summary-box{background:var(--warm-white);border:1px solid var(--parchment);padding:1rem;margin-bottom:1.25rem;}
+    .summary-box .summary-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--brown);margin-bottom:0.6rem;}
+    .summary-box .summary-row{font-size:0.85rem;line-height:1.8;}
+
+    /* ── SUCCESS ── */
+    .success-box{text-align:center;padding:1.5rem 0;}
+    .check-circle{width:68px;height:68px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;animation:popIn 0.4s cubic-bezier(0.4,0,0.2,1);}
+    @keyframes popIn{from{transform:scale(0);}to{transform:scale(1);}}
+    .booking-id-box{background:var(--warm-white);border:1px solid var(--parchment);padding:0.85rem 1rem;margin:1rem 0;text-align:center;}
+    .booking-id-num{font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:600;letter-spacing:0.2em;color:var(--brown-light);}
+
+    /* ── REVEAL ── */
+    .reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease;}
+    .reveal.visible{opacity:1;transform:none;}
+
+    /* ── TOAST ── */
+    #toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--charcoal);color:white;font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;padding:0.7rem 1.25rem;z-index:500;transition:transform 0.3s;white-space:nowrap;max-width:90vw;text-align:center;}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+
+    /* ── FOOTER ── */
+    footer{background:var(--charcoal);color:rgba(249,245,239,0.6);padding:2.5rem 1.5rem;}
+    footer a{color:rgba(249,245,239,0.6);text-decoration:none;transition:color 0.2s;}
+    footer a:hover{color:white;}
+    .footer-inner{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1.5rem;}
+    .footer-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
+
+    @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(8px);}}
+    ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--parchment);}
+    [x-cloak]{display:none;}
+  
+  /* ══════════ POST TROPIS — GREEN THEME ══════════ */
+  :root {
+    --primary:       #1A3328;
+    --primary-mid:   #2D5A40;
+    --primary-acc:   #4A7C59;
+    --primary-light: #6B9E7A;
+    --warm-white:    #F4F0E8;
+    --parchment:     #E8E2D4;
+    --charcoal:      #1E1B18;
+    --brown:         #7C5C42;
+    --brown-light:   #C4A882;
+    --brown-pale:    #D4BC96;
+    --sage:          #8AB89A;
+  }
+  /* Brand primaries → hijau */
+  .btn-primary, .btn-add { background: var(--primary-mid) !important; color:white !important; }
+  .btn-primary:hover     { background: var(--primary) !important; }
+  .btn-add:hover         { background: var(--primary) !important; }
+  .btn-add.added         { background: var(--sage) !important; }
+  .btn-green             { background: var(--primary-mid) !important; color:white !important; }
+  .btn-green:hover       { background: var(--primary) !important; }
+  /* Tabs */
+  .tab-btn.active { background: var(--primary-mid) !important; border-color: var(--primary-mid) !important; color:white !important; }
+  .tab-btn:hover  { border-color: var(--primary-acc) !important; color: var(--primary-mid) !important; }
+  /* Badges */
+  .badge-bestseller, .b-best { background: var(--primary-mid) !important; }
+  .cart-badge               { background: var(--primary-mid) !important; }
+  .check-circle             { background: var(--primary-acc) !important; }
+  /* Labels & decorations */
+  .section-label { color: var(--primary-acc) !important; }
+  .line-dec      { background: var(--primary-acc) !important; }
+  .form-label    { color: var(--primary-mid) !important; }
+  .form-input:focus { border-color: var(--primary-acc) !important; }
+  /* Payment highlight */
+  .pay-method.selected { border-color: var(--primary-mid) !important; background: rgba(45,90,64,0.05) !important; }
+  .pay-method:hover    { border-color: var(--primary-acc) !important; }
+  /* Sidebar admin */
+  #sidebar { background: var(--primary) !important; }
+  .sidebar-logo { border-bottom-color: rgba(255,255,255,0.08) !important; }
+  .nav-item.active { background: rgba(74,124,89,0.25) !important; color: #A8D4B4 !important; }
+  .nav-item:hover  { background: rgba(255,255,255,0.06) !important; }
+  /* Calendar events */
+  .cal-view-btn.active { background: var(--primary-mid) !important; }
+  .cal-cell.today { border-color: var(--primary-acc) !important; }
+  .cal-cell.today .cal-date { background: var(--primary-mid) !important; }
+  /* Hours table */
+  .hours-table td:last-child { color: var(--primary-mid) !important; }
+  /* Navbar scrolled */
+  #navbar.scrolled { background: rgba(244,240,232,0.94) !important; }
+  /* Admin stat nums */
+  #bk-confirmed, #ord-processing { color: var(--primary-acc) !important; }
+  /* WA bubble pulse */
+  @keyframes waPulse{0%{transform:scale(1);opacity:0.7;}70%{transform:scale(1.45);opacity:0;}100%{opacity:0;}}
+
+  </style>
+</head>
+<body>
+
+<!-- ══ NAVBAR ══ -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" id="navbar-logo" style="display:flex;align-items:center;gap:0.6rem;text-decoration:none;">
+      <svg width="38" height="38" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+  <circle cx="18" cy="18" r="17" fill="#1A3328" stroke="#4A7C59" stroke-width="1"/>
+  <path d="M18 8.5c0 0-6.5 3.8-6.5 9.5s6.5 9.5 6.5 9.5" stroke="#C4A882" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M18 8.5c0 0 6.5 3.8 6.5 9.5s-6.5 9.5-6.5 9.5" stroke="#C4A882" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="11.5" y1="18" x2="24.5" y2="18" stroke="#4A7C59" stroke-width="1" stroke-linecap="round"/>
+  <circle cx="18" cy="18" r="2.2" fill="#C4A882"/>
+</svg>
+      <div style="display:flex;flex-direction:column;line-height:1;">
+        <span style="font-family:'Playfair Display',serif;font-size:1.3rem;color:#1A3328;letter-spacing:-0.02em;font-weight:700;">Post Tropis</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.28em;text-transform:uppercase;color:#4A7C59;margin-top:0.1rem;">Café & Space</span>
+      </div>
+    </a>
+    <!-- Desktop -->
+    <div class="nav-desktop">
+      <a href="index.html#menu" class="nav-link">Menu & Order</a>
+      <a href="fasilitas.html" class="nav-link active">Fasilitas</a>
+      <a href="index.html#location" class="nav-link">Lokasi</a>
+      <a href="#booking" class="nav-link" style="background:var(--brown-light);color:white;padding:0.45rem 1.1rem;opacity:1;">Booking</a>
+    </div>
+    <!-- Mobile hamburger -->
+    <button class="nav-mobile-toggle" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+      <span id="ham-1"></span>
+      <span id="ham-2"></span>
+      <span id="ham-3"></span>
+    </button>
+  </div>
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobile-nav">
+    <a href="index.html#menu" class="nav-link" onclick="closeMobileNav()">Menu & Order</a>
+    <a href="fasilitas.html" class="nav-link active" onclick="closeMobileNav()">Fasilitas</a>
+    <a href="index.html#location" class="nav-link" onclick="closeMobileNav()">Lokasi</a>
+    <a href="#booking" class="nav-link" style="color:var(--brown-light);" onclick="closeMobileNav()">→ Booking Sekarang</a>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Post Tropis · Makassar</p>
+    <h1 class="hero-title">Space untuk<br/><em>Kerja, Meeting,</em><br/>& Berkarya.</h1>
+    <p class="hero-desc">Lebih dari sekadar kafe — kami menyediakan ruang produktif yang nyaman untuk individu, tim, dan kreator.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+      <a href="#fasilitas" class="btn btn-primary">Lihat Fasilitas</a>
+      <a href="#booking" class="btn btn-outline">Booking Sekarang</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FASILITAS ══ -->
+<section id="fasilitas" class="fasi-section">
+  <div class="fasi-inner">
+
+    <div class="fasi-heading reveal">
+      <p class="section-label" style="margin-bottom:0.85rem;">— Apa yang Kami Sediakan</p>
+      <h2 style="font-size:clamp(1.9rem,5vw,3rem);letter-spacing:-0.02em;">Fasilitas <em style="color:var(--brown-light);">Post Tropis</em></h2>
+      <p style="margin-top:0.65rem;color:rgba(44,40,37,0.5);font-size:0.88rem;max-width:420px;margin-left:auto;margin-right:auto;">Semua dirancang untuk mendukung produktivitas dan kenyamananmu.</p>
+    </div>
+
+    <div class="fasi-grid">
+
+      <!-- Co-working -->
+      <div class="fasi-card reveal">
+        <div class="fasi-card-head brown">
+          <p class="fasi-card-sub" style="margin-bottom:0.4rem;"> Produktif & Nyaman</p>
+          <h3 class="fasi-card-title">Co-Working<br/>Space</h3>
+          <div style="position:absolute;top:1rem;right:1rem;opacity:0.12;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </div>
+        </div>
+        <div class="fasi-card-body">
+          <div class="price-row">
+            <div><p class="price-label">Person (1 Orang)</p><span class="price-val">50k</span><span class="price-unit"> /hari</span></div>
+            <div><p class="price-label">Group (4 Orang)</p><span class="price-val">150k</span><span class="price-unit"> /hari</span></div>
+          </div>
+          <p style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,40,37,0.4);margin-bottom:0.65rem;">Fasilitas Termasuk</p>
+          <div class="fac-list">
+            <div class="fac-item">Internet Access (WiFi Cepat)</div>
+            <div class="fac-item">Air Conditioner</div>
+            <div class="fac-item">Cozy Working Space</div>
+            <div class="fac-item">Privacy Room</div>
+            <div class="fac-item">Stop Kontak di Setiap Meja</div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="openBooking('Coworking Space')">Booking Co-Working →</button>
+        </div>
+      </div>
+
+      <!-- Meeting Room -->
+      <div class="fasi-card reveal">
+        <div class="fasi-card-head green">
+          <p class="fasi-card-sub" style="margin-bottom:0.4rem;"> Type B · 6 Orang</p>
+          <h3 class="fasi-card-title">Meeting<br/>Room</h3>
+          <div style="position:absolute;top:1rem;right:1rem;opacity:0.12;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+        </div>
+        <div class="fasi-card-body">
+          <div class="price-row">
+            <div><p class="price-label">1 Jam</p><span class="price-val">75k</span><span class="price-unit"> /jam</span></div>
+            <div><p class="price-label">2 Jam</p><span class="price-val">100k</span><span class="price-unit"> /2 jam</span></div>
+          </div>
+          <p style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,40,37,0.4);margin-bottom:0.65rem;">Fasilitas Termasuk</p>
+          <div class="fac-list">
+            <div class="fac-item g">Internet Access</div>
+            <div class="fac-item g">Air Conditioner</div>
+            <div class="fac-item g">Smart TV 55"</div>
+            <div class="fac-item g">Privacy Room</div>
+            <div class="fac-item g">Office Seats (6 Kursi)</div>
+          </div>
+          <button class="btn btn-green btn-full" onclick="openBooking('Meeting Room Type B')">Booking Meeting Room →</button>
+        </div>
+      </div>
+
+      <!-- Studio -->
+      <div class="fasi-card reveal">
+        <div class="fasi-card-head dark">
+          <p class="fasi-card-sub" style="margin-bottom:0.4rem;"> Kreasi Tanpa Batas</p>
+          <h3 class="fasi-card-title">Studio &<br/>Arsitektur</h3>
+          <div style="position:absolute;top:1rem;right:1rem;opacity:0.12;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+        </div>
+        <div class="fasi-card-body">
+          <div style="padding-bottom:1.25rem;border-bottom:1px solid var(--parchment);margin-bottom:1.25rem;">
+            <p class="price-label">Harga</p>
+            <span style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;color:var(--charcoal);">Hubungi Kami</span>
+            <p style="font-size:0.78rem;color:rgba(44,40,37,0.45);margin-top:0.25rem;">Menyesuaikan kebutuhan project</p>
+          </div>
+          <p style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,40,37,0.4);margin-bottom:0.65rem;">Cocok untuk</p>
+          <div class="fac-list">
+            <div class="fac-item">Sesi foto & video konten</div>
+            <div class="fac-item">Presentasi desain arsitektur</div>
+            <div class="fac-item">Workshop & kelas kreatif</div>
+            <div class="fac-item">Portfolio shoot</div>
+            <div class="fac-item">Skripsi & tugas akhir</div>
+          </div>
+          <a href="https://wa.me/6282189188918?text=Halo%20Post%20Tropis%2C%20saya%20ingin%20info%20Studio%20%26%20Studio%20Arsitektur" target="_blank" class="btn btn-dark btn-full" style="display:flex;">Tanya via WhatsApp →</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fasilitas Umum -->
+    <div class="reveal" style="background:white;border:1px solid var(--parchment);padding:1.5rem;margin-bottom:1.25rem;">
+      <p class="section-label" style="margin-bottom:1.25rem;">— Fasilitas Umum (Tersedia untuk Semua Tamu)</p>
+      <div class="umum-grid">
+        <div class="umum-item"><span class="umum-icon"></span><div><p class="umum-name">Toilet</p><p class="umum-desc">Bersih & terawat</p></div></div>
+        <div class="umum-item"><span class="umum-icon"></span><div><p class="umum-name">Wastafel (WS)</p><p class="umum-desc">Hand wash tersedia</p></div></div>
+        <div class="umum-item"><span class="umum-icon"></span><div><p class="umum-name">Smoking Room</p><p class="umum-desc">Area khusus merokok</p></div></div>
+        <div class="umum-item"><span class="umum-icon"></span><div><p class="umum-name">Indoor Smoking</p><p class="umum-desc">Zona indoor tersendiri</p></div></div>
+        <div class="umum-item"><span class="umum-icon"></span><div><p class="umum-name">WiFi Kencang</p><p class="umum-desc">Untuk semua tamu</p></div></div>
+        <div class="umum-item"><span class="umum-icon"></span><div><p class="umum-name">Charging Station</p><p class="umum-desc">Stop kontak tiap area</p></div></div>
+      </div>
+    </div>
+
+    <!-- WA Banner -->
+    <div class="wa-banner reveal">
+      <div>
+        <p>Butuh info lebih lanjut?</p>
+        <small>Booking · Tanya Harga · Ketersediaan Jadwal</small>
+      </div>
+      <a href="https://wa.me/6282189188918?text=Halo%20Post%20Tropis%2C%20saya%20ingin%20info%20fasilitas%20dan%20booking" target="_blank" class="btn btn-wa" style="white-space:nowrap;flex-shrink:0;">
+         0821-8918-8918
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ BOOKING FORM ══ -->
+<section id="booking" class="booking-section">
+  <div class="booking-head">
+    <p class="section-label" style="color:var(--brown-pale);margin-bottom:0.85rem;">— Reservasi Online</p>
+    <h2 style="font-size:clamp(1.9rem,5vw,3rem);color:white;letter-spacing:-0.02em;">Booking & <em style="color:var(--brown-pale);">Bayar DP</em></h2>
+    <p style="color:rgba(249,245,239,0.45);font-size:0.85rem;margin-top:0.6rem;max-width:380px;margin-left:auto;margin-right:auto;">Isi form → pilih metode DP → upload bukti → konfirmasi via WA otomatis.</p>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps" id="step-indicator">
+    <div class="step active" id="ind-1"><div class="step-num">1</div><div class="step-label">Detail</div></div>
+    <div class="step" id="ind-2"><div class="step-num">2</div><div class="step-label">Bayar DP</div></div>
+    <div class="step" id="ind-3"><div class="step-num">3</div><div class="step-label">Selesai</div></div>
+  </div>
+
+  <div class="booking-box">
+
+    <!-- STEP 1 -->
+    <div class="step-panel active" id="form-step-1">
+      <h3 class="step-title">Detail Booking</h3>
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap *</label>
+        <input class="form-input" id="b-name" type="text" placeholder="Nama kamu"/>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">No. WhatsApp *</label>
+          <input class="form-input" id="b-wa" type="tel" placeholder="08xxxxxxxxxx"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fasilitas *</label>
+          <select class="form-input" id="b-facility">
+            <option value="">-- Pilih Fasilitas --</option>
+            <option value="Coworking Space — Person (1 Orang) · 50k/hari">Co-Working — Person (50k/hari)</option>
+            <option value="Coworking Space — Group (4 Orang) · 150k/hari">Co-Working — Group (150k/hari)</option>
+            <option value="Meeting Room Type B — 1 Jam · 75k">Meeting Room — 1 Jam (75k)</option>
+            <option value="Meeting Room Type B — 2 Jam · 100k">Meeting Room — 2 Jam (100k)</option>
+            <option value="Studio / Studio Arsitektur">Studio / Studio Arsitektur</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Tanggal Booking *</label>
+          <input class="form-input" id="b-date" type="date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jam Mulai *</label>
+          <input class="form-input" id="b-time" type="time"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catatan Tambahan</label>
+        <textarea class="form-input" id="b-note" rows="2" placeholder="Kebutuhan khusus, jumlah orang, dll."></textarea>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:0.5rem;" onclick="goStep2()">Lanjut ke Pembayaran →</button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-panel" id="form-step-2">
+      <h3 class="step-title">Pilih Metode DP</h3>
+      <p style="font-size:0.84rem;color:rgba(44,40,37,0.55);margin-bottom:1.25rem;">DP minimum <strong>50%</strong> dari total untuk mengkonfirmasi booking.</p>
+
+      <div class="summary-box">
+        <p class="summary-label">Ringkasan Booking</p>
+        <div class="summary-row" id="booking-summary"></div>
+      </div>
+
+      <p class="form-label" style="margin-bottom:0.65rem;">Metode Pembayaran DP</p>
+      <label class="pay-method" onclick="selectDP(this,'qris')">
+        <input type="radio" name="dp-method" value="qris"/>
+        <span style="font-size:1.3rem;"></span>
+        <div><div style="font-weight:600;font-size:0.88rem;">QRIS</div><div style="font-size:0.76rem;color:rgba(44,40,37,0.5);">GoPay, OVO, DANA, ShopeePay, mBanking</div></div>
+      </label>
+      <label class="pay-method" onclick="selectDP(this,'bca')">
+        <input type="radio" name="dp-method" value="bca"/>
+        <span style="font-size:1.3rem;"></span>
+        <div><div style="font-weight:600;font-size:0.88rem;">Transfer BCA</div><div style="font-size:0.76rem;color:rgba(44,40,37,0.5);">No. Rek: 1234 5678 90 a/n Post Tropis</div></div>
+      </label>
+      <label class="pay-method" onclick="selectDP(this,'cash')">
+        <input type="radio" name="dp-method" value="cash"/>
+        <span style="font-size:1.3rem;"></span>
+        <div><div style="font-weight:600;font-size:0.88rem;">Bayar di Kasir</div><div style="font-size:0.76rem;color:rgba(44,40,37,0.5);">DP dibayar saat kedatangan</div></div>
+      </label>
+
+      <!-- QRIS -->
+      <div id="qris-display" style="display:none;margin:1rem 0;">
+        <div style="border:2px solid var(--brown-pale);padding:1.25rem;text-align:center;background:white;">
+          <p style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--brown);margin-bottom:0.85rem;">Scan QRIS — Post Tropis</p>
+          <svg width="150" height="150" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto;display:block;">
+            <rect width="180" height="180" fill="white"/>
+            <rect x="10" y="10" width="50" height="50" fill="none" stroke="#2C2825" stroke-width="5"/>
+            <rect x="20" y="20" width="30" height="30" fill="#2C2825"/>
+            <rect x="120" y="10" width="50" height="50" fill="none" stroke="#2C2825" stroke-width="5"/>
+            <rect x="130" y="20" width="30" height="30" fill="#2C2825"/>
+            <rect x="10" y="120" width="50" height="50" fill="none" stroke="#2C2825" stroke-width="5"/>
+            <rect x="20" y="130" width="30" height="30" fill="#2C2825"/>
+            <g fill="#2C2825">
+              <rect x="75" y="10" width="8" height="8"/><rect x="88" y="10" width="8" height="8"/><rect x="101" y="10" width="8" height="8"/>
+              <rect x="75" y="36" width="8" height="8"/><rect x="88" y="36" width="8" height="8"/><rect x="101" y="36" width="8" height="8"/>
+              <rect x="10" y="75" width="8" height="8"/><rect x="23" y="75" width="8" height="8"/><rect x="36" y="75" width="8" height="8"/>
+              <rect x="10" y="101" width="8" height="8"/><rect x="23" y="101" width="8" height="8"/><rect x="36" y="101" width="8" height="8"/>
+              <rect x="75" y="75" width="8" height="8"/><rect x="88" y="75" width="8" height="8"/><rect x="101" y="75" width="8" height="8"/>
+              <rect x="75" y="88" width="8" height="8"/><rect x="101" y="88" width="8" height="8"/>
+              <rect x="75" y="101" width="8" height="8"/><rect x="88" y="101" width="8" height="8"/>
+              <rect x="114" y="101" width="8" height="8"/><rect x="140" y="101" width="8" height="8"/>
+              <rect x="75" y="114" width="8" height="8"/><rect x="101" y="114" width="8" height="8"/>
+              <rect x="75" y="127" width="8" height="8"/><rect x="88" y="127" width="8" height="8"/>
+              <rect x="75" y="140" width="8" height="8"/><rect x="101" y="140" width="8" height="8"/>
+              <rect x="75" y="153" width="8" height="8"/><rect x="88" y="153" width="8" height="8"/>
+            </g>
+          </svg>
+          <p style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;color:var(--brown);margin-top:0.75rem;">POST TROPIS CAFÉ</p>
+        </div>
+      </div>
+
+      <!-- BCA info -->
+      <div id="bca-display" style="display:none;">
+        <div class="info-box">
+          <p style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--brown);margin-bottom:0.4rem;">Info Transfer BCA</p>
+          <p><strong>No. Rek:</strong> 1234 5678 90<br/><strong>Nama:</strong> Post Tropis Café & Space<br/><strong>Bank:</strong> BCA</p>
+        </div>
+      </div>
+
+      <!-- Upload -->
+      <div class="form-group" id="upload-section" style="display:none;">
+        <label class="form-label">Upload Bukti Transfer / Screenshot QRIS *</label>
+        <div class="upload-area" id="upload-area">
+          <input type="file" accept="image/*" onchange="handleUpload(this)" id="bukti-file"/>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 0.4rem;display:block;color:var(--brown-pale);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <p style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(44,40,37,0.4);">Klik atau drag foto bukti bayar</p>
+          <p style="font-size:0.72rem;color:rgba(44,40,37,0.35);margin-top:0.2rem;">JPG / PNG / WEBP — maks 5 MB</p>
+          <img id="preview-img" class="upload-preview"/>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.25rem;flex-wrap:wrap;">
+        <button class="btn btn-outline" style="color:var(--charcoal);border-color:var(--parchment);flex:1;" onclick="goStep(1)">← Kembali</button>
+        <button class="btn btn-primary" style="flex:2;" onclick="goStep3()">Konfirmasi →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-panel" id="form-step-3">
+      <div class="success-box">
+        <div class="check-circle">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3 style="font-size:1.5rem;margin-bottom:0.4rem;">Booking <em style="color:var(--brown-light);">Terkirim!</em></h3>
+        <p style="color:rgba(44,40,37,0.55);font-size:0.87rem;line-height:1.7;max-width:300px;margin:0 auto 1rem;" id="confirm-msg"></p>
+        <div class="booking-id-box">
+          <p style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,40,37,0.4);margin-bottom:0.3rem;">ID Booking</p>
+          <p class="booking-id-num" id="booking-id-display"></p>
+        </div>
+        <p style="font-size:0.82rem;color:rgba(44,40,37,0.5);margin-bottom:1.25rem;">Tim kami akan menghubungi kamu via WhatsApp dalam 1×24 jam.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;">
+          <a id="wa-confirm-link" href="#" target="_blank" class="btn btn-wa">📱 Chat WhatsApp Kami</a>
+          <button class="btn" style="border:1px solid var(--parchment);color:var(--charcoal);background:transparent;" onclick="resetBooking()">Booking Lagi</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <span style="font-family:'Playfair Display',serif;font-size:1.3rem;color:white;font-weight:700;">Post Tropis</span>
+      <span style="display:block;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--brown-pale);margin-top:0.2rem;">Café & Space · Makassar</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Menu & Order</a>
+      <a href="fasilitas.html">Fasilitas</a>
+      <a href="index.html#location">Lokasi</a>
+    </div>
+    <div style="font-size:0.78rem;opacity:0.35;">&copy; 2025 Post Tropis.</div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+// ── Mobile Nav ────────────────────────────────────────
+function toggleMobileNav() {
+  const nav = document.getElementById('mobile-nav');
+  const isOpen = nav.classList.toggle('open');
+  const h1 = document.getElementById('ham-1');
+  const h2 = document.getElementById('ham-2');
+  const h3 = document.getElementById('ham-3');
+  if (isOpen) {
+    h1.style.cssText='transform:rotate(45deg) translate(5px,5px)';
+    h2.style.opacity='0';
+    h3.style.cssText='transform:rotate(-45deg) translate(5px,-5px)';
+  } else {
+    h1.style.cssText=''; h2.style.opacity=''; h3.style.cssText='';
+  }
+}
+function closeMobileNav() {
+  document.getElementById('mobile-nav').classList.remove('open');
+  document.getElementById('ham-1').style.cssText='';
+  document.getElementById('ham-2').style.opacity='';
+  document.getElementById('ham-3').style.cssText='';
+}
+
+// ── Booking ──────────────────────────────────────────
+let bookingData = {};
+let uploadedBase64 = null;
+
+function openBooking(facility) {
+  document.getElementById('booking').scrollIntoView({ behavior:'smooth' });
+  setTimeout(() => {
+    const sel = document.getElementById('b-facility');
+    for (let o of sel.options) {
+      if (o.value.toLowerCase().includes(facility.toLowerCase().split(' ')[0])) { sel.value = o.value; break; }
+    }
+  }, 700);
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('form-step-' + n).classList.add('active');
+  for (let i = 1; i <= 3; i++) {
+    const ind = document.getElementById('ind-' + i);
+    ind.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  document.getElementById('booking').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function goStep2() {
+  const name     = document.getElementById('b-name').value.trim();
+  const wa       = document.getElementById('b-wa').value.trim();
+  const facility = document.getElementById('b-facility').value;
+  const date     = document.getElementById('b-date').value;
+  const time     = document.getElementById('b-time').value;
+  if (!name)     { toast('Masukkan nama kamu ✗'); return; }
+  if (!wa)       { toast('Masukkan nomor WhatsApp ✗'); return; }
+  if (!facility) { toast('Pilih fasilitas dulu ✗'); return; }
+  if (!date)     { toast('Pilih tanggal booking ✗'); return; }
+  if (!time)     { toast('Pilih jam mulai ✗'); return; }
+  bookingData = { name, wa, facility, date, time, note: document.getElementById('b-note').value.trim() };
+  const dateStr = new Date(date).toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('booking-summary').innerHTML =
+    `<b>${name}</b> · ${wa}<br/><b>Fasilitas:</b> ${facility}<br/><b>Tanggal:</b> ${dateStr}<br/><b>Jam:</b> ${time} WIT${bookingData.note ? '<br/><b>Catatan:</b> ' + bookingData.note : ''}`;
+  goStep(2);
+}
+
+async function goStep3() {
+  const method = document.querySelector('input[name=dp-method]:checked');
+  if (!method) { toast('Pilih metode pembayaran DP ✗'); return; }
+  if ((method.value === 'qris' || method.value === 'bca') && !uploadedBase64) {
+    toast('Upload bukti pembayaran dulu ✗'); return;
+  }
+  const bookingId = 'BK-' + Date.now().toString().slice(-6);
+  bookingData.dpMethod = method.value;
+  bookingData.bookingId = bookingId;
+  bookingData.status = 'pending';
+  if (window.FB) {
+    try {
+      const r = window.FB.push(window.FB.ref(window.FB.db, 'bookings'));
+      await window.FB.set(r, { ...bookingData, proofImage: uploadedBase64 ? '[uploaded]' : null, createdAt: window.FB.serverTimestamp() });
+    } catch(e) { console.warn('Firebase:', e); }
+  }
+  const waMsg = encodeURIComponent(
+    `Halo Post Tropis! Saya sudah booking:\n\n*ID:* ${bookingId}\n*Nama:* ${bookingData.name}\n*Fasilitas:* ${bookingData.facility}\n*Tanggal:* ${bookingData.date}\n*Jam:* ${bookingData.time}\n*DP:* ${bookingData.dpMethod.toUpperCase()}${bookingData.note ? '\n*Catatan:* ' + bookingData.note : ''}\n\nMohon konfirmasi. Terima kasih! 🙏`
+  );
+  document.getElementById('wa-confirm-link').href = `https://wa.me/6282189188918?text=${waMsg}`;
+  document.getElementById('booking-id-display').textContent = bookingId;
+  document.getElementById('confirm-msg').textContent =
+    `Booking ${bookingData.facility} tanggal ${new Date(bookingData.date).toLocaleDateString('id-ID',{day:'numeric',month:'long'})} pukul ${bookingData.time} sudah diterima, ${bookingData.name}!`;
+  goStep(3);
+}
+
+function resetBooking() {
+  bookingData = {}; uploadedBase64 = null;
+  ['b-name','b-wa','b-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('b-facility').value = '';
+  document.getElementById('b-date').value = '';
+  document.getElementById('b-time').value = '';
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.querySelectorAll('input[name=dp-method]').forEach(r => r.checked = false);
+  document.querySelectorAll('.pay-method').forEach(l => { l.classList.remove('selected'); l.style.borderColor=''; l.style.background=''; });
+  ['qris-display','bca-display','upload-section'].forEach(id => document.getElementById(id).style.display = 'none');
+  goStep(1);
+}
+
+function selectDP(label, method) {
+  document.querySelectorAll('.pay-method').forEach(l => { l.classList.remove('selected'); l.style.borderColor=''; l.style.background=''; });
+  label.classList.add('selected');
+  label.querySelector('input').checked = true;
+  document.getElementById('qris-display').style.display   = method === 'qris' ? '' : 'none';
+  document.getElementById('bca-display').style.display    = method === 'bca'  ? '' : 'none';
+  document.getElementById('upload-section').style.display = (method === 'qris' || method === 'bca') ? '' : 'none';
+}
+
+function handleUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('File terlalu besar (maks 5 MB) ✗'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    uploadedBase64 = e.target.result;
+    const img = document.getElementById('preview-img');
+    img.src = e.target.result; img.style.display = 'block';
+    toast('Bukti bayar berhasil diupload ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+function toast(msg, dur = 2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+});
+
+document.getElementById('b-date').min = new Date().toISOString().split('T')[0];
+
+const obs = new IntersectionObserver((es) => {
+  es.forEach((e, i) => { if (e.isIntersecting) setTimeout(() => e.target.classList.add('visible'), i * 80); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+
+<!-- ═══ WA FLOATING BUBBLE ═══ -->
+<div id="wa-bubble-wrap" style="position:fixed;bottom:1.75rem;right:1.75rem;z-index:8000;display:flex;flex-direction:column;align-items:flex-end;gap:0.65rem;">
+  <div id="wa-tooltip" style="display:none;background:white;border:1px solid #E8E2D4;padding:1.1rem 1.25rem;max-width:230px;box-shadow:0 8px 32px rgba(0,0,0,0.13);position:relative;border-radius:2px;">
+    <button onclick="document.getElementById('wa-tooltip').style.display='none'" style="position:absolute;top:0.4rem;right:0.6rem;background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(0,0,0,0.3);line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#25D366;flex-shrink:0;"></div>
+      <p style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:#4A7C59;">Online Sekarang</p>
+    </div>
+    <p style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.3rem;color:#1A3328;">Reservasi Fasilitas?</p>
+    <p style="font-size:0.78rem;color:rgba(30,27,24,0.55);line-height:1.6;margin-bottom:0.85rem;">Chat kami untuk booking Co-Working, Meeting Room, atau Studio Post Tropis.</p>
+    <a href="https://wa.me/6282189188918?text=Halo%20Post%20Tropis!%20Saya%20ingin%20reservasi%20fasilitas%20%F0%9F%99%8F" target="_blank"
+      style="display:flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;padding:0.65rem;background:#25D366;color:white;font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border-radius:1px;transition:background 0.2s;"
+      onmouseover="this.style.background='#1da851'" onmouseout="this.style.background='#25D366'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Chat Sekarang
+    </a>
+    <div style="position:absolute;bottom:-7px;right:20px;width:12px;height:12px;background:white;border-right:1px solid #E8E2D4;border-bottom:1px solid #E8E2D4;transform:rotate(45deg);"></div>
+  </div>
+  <button id="wa-bubble-btn" onclick="toggleWaBubble()"
+    style="width:58px;height:58px;border-radius:50%;background:#25D366;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,0.45);transition:transform 0.2s,box-shadow 0.2s;position:relative;"
+    onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"
+    aria-label="Chat WhatsApp Reservasi">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    <span style="position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(37,211,102,0.5);animation:waPulse 2s ease-out infinite;pointer-events:none;"></span>
+  </button>
+</div>
+
+<!-- Admin hint overlay -->
+<div id="admin-tap-hint" style="position:fixed;inset:0;z-index:8500;display:flex;align-items:center;justify-content:center;background:rgba(26,51,40,0.85);opacity:0;pointer-events:none;transition:opacity 0.35s;">
+  <div style="background:white;padding:2rem 2.5rem;text-align:center;max-width:300px;">
+    <div style="font-size:2rem;margin-bottom:0.75rem;">🔑</div>
+    <p style="font-family:'Playfair Display',serif;font-size:1.2rem;color:#1A3328;margin-bottom:0.35rem;">Membuka Admin…</p>
+    <p style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(26,51,40,0.5);">Redirect dalam 1 detik</p>
+  </div>
+</div>
+
+<script>
+/* ── WA Bubble ── */
+function toggleWaBubble(){
+  var t=document.getElementById('wa-tooltip');
+  if(t) t.style.display=t.style.display==='none'||t.style.display===''?'block':'none';
+}
+document.addEventListener('click',function(e){
+  var wrap=document.getElementById('wa-bubble-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    var t=document.getElementById('wa-tooltip');
+    if(t)t.style.display='none';
+  }
+});
+/* Auto show bubble after 4s on first visit */
+setTimeout(function(){
+  if(!sessionStorage.getItem('wa_shown')){
+    var t=document.getElementById('wa-tooltip');
+    if(t)t.style.display='block';
+    sessionStorage.setItem('wa_shown','1');
+  }
+},4000);
+
+/* ── Triple-tap logo → admin ── */
+(function(){
+  var taps=0, timer=null;
+  function onTap(e){
+    taps++;
+    clearTimeout(timer);
+    if(taps>=3){
+      taps=0;
+      var hint=document.getElementById('admin-tap-hint');
+      if(hint){hint.style.opacity='1';hint.style.pointerEvents='auto';}
+      setTimeout(function(){ window.location.href='admin.html'; },900);
+      return;
+    }
+    timer=setTimeout(function(){taps=0;},650);
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    var logo=document.getElementById('navbar-logo');
+    if(logo){
+      logo.addEventListener('click',onTap);
+      logo.addEventListener('touchend',function(e){e.preventDefault();onTap(e);},{passive:false});
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

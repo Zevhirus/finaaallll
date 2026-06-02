@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='18' fill='%231A3328'/%3E%3Cpath d='M18 7c0 0-7 4.5-7 11s7 11 7 11' stroke='%23C4A882' stroke-width='1.8' stroke-linecap='round' fill='none'/%3E%3Cpath d='M18 7c0 0 7 4.5 7 11s-7 11-7 11' stroke='%23C4A882' stroke-width='1.8' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='18' cy='18' r='2.5' fill='%234A7C59'/%3E%3C/svg%3E"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — Post Tropis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, push, set, remove, update, serverTimestamp }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyALMOQANjf8CvIgkXmPMVxXQmbjtX1ow6w",
+      authDomain: "cafe-1d5e0.firebaseapp.com",
+      databaseURL: "https://cafe-1d5e0-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cafe-1d5e0",
+      storageBucket: "cafe-1d5e0.firebasestorage.app",
+      messagingSenderId: "1085007904987",
+      appId: "1:1085007904987:web:a655466c09ca77e9708cfe"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+    window.FB = { db, ref, onValue, push, set, remove, update, serverTimestamp };
+
+    onValue(ref(db,'menu'),    snap => { window._menuRaw    = snap.val()||{}; renderMenuTable(window._menuRaw); updateMenuStats(window._menuRaw); });
+    onValue(ref(db,'media'),   snap => { window._mediaRaw   = snap.val()||{}; if(typeof renderMediaPanel==='function') renderMediaPanel(window._mediaRaw); });
+    onValue(ref(db,'orders'),  snap => { window._ordersRaw  = snap.val()||{}; renderOrders(window._ordersRaw); updateOrderStats(window._ordersRaw); });
+    onValue(ref(db,'bookings'),snap => { window._bookingsRaw= snap.val()||{}; renderBookings(window._bookingsRaw); updateBookingStats(window._bookingsRaw); renderCalendar(); });
+  </script>
+
+  <style>
+    :root{
+      --warm:#F9F5EF; --parch:#EFE8D8; --char:#2C2825;
+      --brn:#7C5C42; --brnl:#A07850; --brnp:#D4B896;
+      --sage:#8A9B84; --red:#C0392B; --sidebar:#1A1714;
+      --green:#2D5A40;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--warm);color:var(--char);display:flex;min-height:100vh;font-size:14px;}
+
+    /* ── LOGIN ── */
+    #login-screen{position:fixed;inset:0;background:var(--sidebar);display:flex;align-items:center;justify-content:center;z-index:999;}
+    #login-box{background:white;padding:2.5rem;width:360px;}
+    #login-box h2{font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:0.25rem;}
+    #login-box p{font-size:0.82rem;color:rgba(44,40,37,0.5);margin-bottom:1.75rem;}
+
+    /* ── SIDEBAR ── */
+    #sidebar{width:220px;background:var(--sidebar);color:rgba(249,245,239,0.7);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:10;transition:width 0.2s;}
+    .sidebar-logo{padding:1.4rem 1.2rem;border-bottom:1px solid rgba(255,255,255,0.07);}
+    .sidebar-logo span{font-family:'Playfair Display',serif;font-size:1.05rem;color:white;display:block;}
+    .sidebar-logo small{font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--brnp);}
+    .nav-item{display:flex;align-items:center;gap:0.7rem;padding:0.7rem 1.2rem;cursor:pointer;font-size:0.83rem;transition:background 0.15s,color 0.15s;border:none;background:none;color:rgba(249,245,239,0.55);width:100%;text-align:left;white-space:nowrap;}
+    .nav-item:hover{background:rgba(255,255,255,0.06);color:white;}
+    .nav-item.active{background:rgba(160,120,80,0.2);color:var(--brnp);}
+    .nav-item svg{opacity:0.7;flex-shrink:0;}
+    .sidebar-section{padding:0.45rem 1.2rem;font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-top:0.85rem;}
+    .sidebar-footer{margin-top:auto;padding:1.2rem;border-top:1px solid rgba(255,255,255,0.07);}
+    .badge-pill{margin-left:auto;background:#ef4444;color:white;border-radius:9999px;font-size:0.58rem;font-family:'DM Mono',monospace;padding:0.1rem 0.45rem;display:none;}
+
+    /* ── MAIN ── */
+    #main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+    .topbar{background:white;border-bottom:1px solid var(--parch);padding:0.85rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5;}
+    .topbar h1{font-family:'Playfair Display',serif;font-size:1.25rem;}
+    .content{padding:1.75rem;flex:1;}
+
+    /* ── STATS ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.85rem;margin-bottom:1.75rem;}
+    .stat-card{background:white;border:1px solid var(--parch);padding:1.1rem;}
+    .stat-num{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:600;color:var(--brnl);}
+    .stat-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,40,37,0.45);margin-top:0.2rem;}
+
+    /* ── PANEL ── */
+    .panel{display:none;}.panel.active{display:block;}
+
+    /* ── BUTTONS ── */
+    .btn{display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;font-family:'DM Mono',monospace;font-size:0.67rem;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+    .btn-primary{background:var(--brnl);color:white;}.btn-primary:hover{background:var(--brn);}
+    .btn-danger{background:#fee2e2;color:var(--red);}.btn-danger:hover{background:var(--red);color:white;}
+    .btn-success{background:#d1fae5;color:#065f46;}.btn-success:hover{background:#065f46;color:white;}
+    .btn-warn{background:#fef3c7;color:#92400e;}.btn-warn:hover{background:#92400e;color:white;}
+    .btn-info{background:#dbeafe;color:#1e40af;}.btn-info:hover{background:#1e40af;color:white;}
+    .btn-green{background:var(--green);color:white;}.btn-green:hover{background:#1E3A2F;}
+    .btn-outline{background:transparent;color:var(--brn);border:1px solid var(--brnp);}.btn-outline:hover{background:var(--brn);color:white;}
+    .btn-wa{background:#25D366;color:white;}.btn-wa:hover{background:#1da851;}
+    .btn-sm{padding:0.28rem 0.65rem;font-size:0.6rem;}
+    .btn-xs{padding:0.2rem 0.5rem;font-size:0.55rem;}
+
+    /* ── TABLE ── */
+    .table-wrap{background:white;border:1px solid var(--parch);overflow:auto;}
+    table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+    th{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(44,40,37,0.45);padding:0.8rem 0.9rem;text-align:left;border-bottom:1px solid var(--parch);background:var(--warm);white-space:nowrap;}
+    td{padding:0.8rem 0.9rem;border-bottom:1px solid rgba(239,232,216,0.6);vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(249,245,239,0.5);}
+
+    /* ── BADGES ── */
+    .badge{display:inline-block;font-family:'DM Mono',monospace;font-size:0.57rem;letter-spacing:0.08em;text-transform:uppercase;padding:0.18rem 0.5rem;}
+    .b-green{background:#d1fae5;color:#065f46;}.b-red{background:#fee2e2;color:#991b1b;}
+    .b-yellow{background:#fef3c7;color:#92400e;}.b-gray{background:#f3f4f6;color:#6b7280;}
+    .b-blue{background:#dbeafe;color:#1e40af;}.b-best{background:var(--brnl);color:white;}
+    .b-purple{background:#ede9fe;color:#5b21b6;}.b-teal{background:#ccfbf1;color:#0f766e;}
+
+    /* ── FORM ── */
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:0.85rem;}
+    .form-row.full{grid-template-columns:1fr;}.form-row.three{grid-template-columns:1fr 1fr 1fr;}
+    .form-group{display:flex;flex-direction:column;gap:0.35rem;}
+    .form-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--brn);}
+    .form-input{border:1px solid var(--parch);padding:0.55rem 0.7rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--char);background:white;outline:none;width:100%;transition:border-color 0.2s;}
+    .form-input:focus{border-color:var(--brnl);}
+    select.form-input{cursor:pointer;}
+    .form-check{display:flex;align-items:center;gap:0.45rem;cursor:pointer;font-size:0.85rem;}
+    .form-check input{accent-color:var(--brn);width:15px;height:15px;}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(44,40,37,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+    .modal-overlay.open{opacity:1;pointer-events:all;}
+    .modal-box{background:white;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:1.75rem;transform:translateY(16px);transition:transform 0.25s;}
+    .modal-overlay.open .modal-box{transform:none;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.35rem;}
+    .modal-header h3{font-family:'Playfair Display',serif;font-size:1.25rem;}
+    .modal-close{background:none;border:none;cursor:pointer;opacity:0.5;font-size:1.2rem;line-height:1;}
+    .modal-close:hover{opacity:1;}
+
+    /* ── BOOKING CARD ── */
+    .bk-card{background:white;border:1px solid var(--parch);padding:1.1rem;margin-bottom:0.75rem;transition:box-shadow 0.2s;}
+    .bk-card:hover{box-shadow:0 4px 16px rgba(44,40,37,0.08);}
+    .bk-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.65rem;gap:0.5rem;flex-wrap:wrap;}
+    .bk-id{font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:600;letter-spacing:0.1em;color:var(--brn);}
+    .bk-meta{font-size:0.78rem;color:rgba(44,40,37,0.5);margin-top:0.15rem;line-height:1.5;}
+    .bk-facility{font-weight:600;font-size:0.88rem;color:var(--char);margin-bottom:0.25rem;}
+    .bk-body{border-top:1px solid var(--parch);padding-top:0.65rem;margin-top:0.65rem;}
+    .bk-info-row{display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;font-size:0.82rem;color:rgba(44,40,37,0.7);margin-bottom:0.5rem;}
+    .bk-actions{display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.75rem;}
+
+    /* ── ORDER CARD ── */
+    .order-card{background:white;border:1px solid var(--parch);padding:1.1rem;margin-bottom:0.75rem;}
+    .order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;}
+    .order-num{font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:600;letter-spacing:0.1em;color:var(--brn);}
+    .order-meta{font-size:0.78rem;color:rgba(44,40,37,0.5);margin-top:0.15rem;line-height:1.5;}
+    .order-items{font-size:0.83rem;border-top:1px solid var(--parch);padding-top:0.6rem;margin-top:0.6rem;}
+    .order-item-row{display:flex;justify-content:space-between;padding:0.15rem 0;}
+    .order-total{display:flex;justify-content:space-between;font-weight:600;border-top:1px solid var(--parch);margin-top:0.45rem;padding-top:0.45rem;font-size:0.88rem;}
+    .order-actions{display:flex;gap:0.4rem;margin-top:0.75rem;flex-wrap:wrap;}
+
+    /* ── CALENDAR ── */
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;}
+    .cal-title{font-family:'Playfair Display',serif;font-size:1.3rem;}
+    .cal-nav{display:flex;align-items:center;gap:0.5rem;}
+    .cal-view-toggle{display:flex;border:1px solid var(--parch);overflow:hidden;}
+    .cal-view-btn{padding:0.4rem 0.9rem;font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;background:transparent;color:rgba(44,40,37,0.55);transition:all 0.2s;}
+    .cal-view-btn.active{background:var(--brnl);color:white;}
+
+    /* Monthly */
+    .cal-month{width:100%;}
+    .cal-grid-head{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
+    .cal-day-label{text-align:center;font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(44,40,37,0.4);padding:0.5rem 0;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+    .cal-cell{background:white;border:1px solid var(--parch);min-height:90px;padding:0.4rem;cursor:pointer;transition:background 0.15s;position:relative;}
+    .cal-cell:hover{background:#fdf8f2;}
+    .cal-cell.other-month{background:var(--warm);opacity:0.5;}
+    .cal-cell.today{border-color:var(--brnl);}
+    .cal-cell.today .cal-date{background:var(--brnl);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+    .cal-date{font-family:'DM Mono',monospace;font-size:0.7rem;font-weight:600;color:var(--char);margin-bottom:0.3rem;}
+    .cal-event{font-size:0.62rem;padding:0.15rem 0.35rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:2px;cursor:pointer;}
+    .cal-event.cowork{background:#fef3c7;color:#92400e;}
+    .cal-event.meeting{background:#d1fae5;color:#065f46;}
+    .cal-event.studio{background:#ede9fe;color:#5b21b6;}
+    .cal-event.order{background:#dbeafe;color:#1e40af;}
+    .cal-more{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--brnl);cursor:pointer;}
+
+    /* Weekly */
+    .cal-week{width:100%;overflow-x:auto;}
+    .week-grid{display:grid;grid-template-columns:60px repeat(7,1fr);min-width:600px;}
+    .week-head-cell{background:white;border:1px solid var(--parch);border-bottom:none;padding:0.5rem 0.3rem;text-align:center;}
+    .week-head-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(44,40,37,0.45);}
+    .week-head-date{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--char);line-height:1;}
+    .week-head-date.today{color:var(--brnl);}
+    .week-time-col{font-family:'DM Mono',monospace;font-size:0.6rem;color:rgba(44,40,37,0.35);text-align:right;padding-right:0.5rem;}
+    .week-slot{border:1px solid var(--parch);border-top:none;min-height:44px;position:relative;padding:1px;}
+    .week-event{position:absolute;left:2px;right:2px;padding:0.15rem 0.3rem;font-size:0.6rem;overflow:hidden;cursor:pointer;border-radius:2px;line-height:1.3;}
+
+    /* ── Day Detail Modal ── */
+    .day-bk-item{padding:0.65rem;border:1px solid var(--parch);margin-bottom:0.5rem;font-size:0.83rem;}
+    .day-bk-item .fac{font-weight:600;margin-bottom:0.2rem;}
+    .day-bk-item .meta{font-size:0.75rem;color:rgba(44,40,37,0.5);}
+
+    /* ── Seed / Filter ── */
+    .seed-banner{background:#fef3c7;border:1px solid #fcd34d;padding:0.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem;flex-wrap:wrap;}
+    .seed-banner p{font-size:0.83rem;color:#92400e;}
+    .filter-bar{display:flex;gap:0.6rem;margin-bottom:1.1rem;align-items:center;flex-wrap:wrap;}
+    .filter-bar input,.filter-bar select{border:1px solid var(--parch);padding:0.45rem 0.7rem;font-size:0.83rem;outline:none;background:white;color:var(--char);}
+    .filter-bar input:focus,.filter-bar select:focus{border-color:var(--brnl);}
+
+    /* ── Toast ── */
+    #admin-toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--char);color:white;font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;padding:0.7rem 1.35rem;z-index:999;transition:transform 0.3s;white-space:nowrap;}
+    #admin-toast.show{transform:translateX(-50%) translateY(0);}
+
+    ::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--parch);}
+
+    @media(max-width:900px){
+      .stats-grid{grid-template-columns:repeat(2,1fr);}
+      #sidebar{width:52px;}
+      #sidebar .nav-item span,#sidebar .sidebar-logo span,#sidebar .sidebar-logo small,#sidebar .sidebar-section,#sidebar .sidebar-footer a span{display:none;}
+      #main{margin-left:52px;}
+    }
+  
+  /* ══════════ POST TROPIS — GREEN THEME ══════════ */
+  :root {
+    --primary:       #1A3328;
+    --primary-mid:   #2D5A40;
+    --primary-acc:   #4A7C59;
+    --primary-light: #6B9E7A;
+    --warm-white:    #F4F0E8;
+    --parchment:     #E8E2D4;
+    --charcoal:      #1E1B18;
+    --brown:         #7C5C42;
+    --brown-light:   #C4A882;
+    --brown-pale:    #D4BC96;
+    --sage:          #8AB89A;
+  }
+  /* Brand primaries → hijau */
+  .btn-primary, .btn-add { background: var(--primary-mid) !important; color:white !important; }
+  .btn-primary:hover     { background: var(--primary) !important; }
+  .btn-add:hover         { background: var(--primary) !important; }
+  .btn-add.added         { background: var(--sage) !important; }
+  .btn-green             { background: var(--primary-mid) !important; color:white !important; }
+  .btn-green:hover       { background: var(--primary) !important; }
+  /* Tabs */
+  .tab-btn.active { background: var(--primary-mid) !important; border-color: var(--primary-mid) !important; color:white !important; }
+  .tab-btn:hover  { border-color: var(--primary-acc) !important; color: var(--primary-mid) !important; }
+  /* Badges */
+  .badge-bestseller, .b-best { background: var(--primary-mid) !important; }
+  .cart-badge               { background: var(--primary-mid) !important; }
+  .check-circle             { background: var(--primary-acc) !important; }
+  /* Labels & decorations */
+  .section-label { color: var(--primary-acc) !important; }
+  .line-dec      { background: var(--primary-acc) !important; }
+  .form-label    { color: var(--primary-mid) !important; }
+  .form-input:focus { border-color: var(--primary-acc) !important; }
+  /* Payment highlight */
+  .pay-method.selected { border-color: var(--primary-mid) !important; background: rgba(45,90,64,0.05) !important; }
+  .pay-method:hover    { border-color: var(--primary-acc) !important; }
+  /* Sidebar admin */
+  #sidebar { background: #0A1210 !important; border-right: 1px solid rgba(74,124,89,0.2) !important; }
+  .sidebar-logo { border-bottom-color: rgba(255,255,255,0.08) !important; }
+  .nav-item.active { background: rgba(74,124,89,0.25) !important; color: #A8D4B4 !important; }
+  .nav-item:hover  { background: rgba(255,255,255,0.06) !important; }
+  /* Calendar events */
+  .cal-view-btn.active { background: var(--primary-mid) !important; }
+  .cal-cell.today { border-color: var(--primary-acc) !important; }
+  .cal-cell.today .cal-date { background: var(--primary-mid) !important; }
+  /* Hours table */
+  .hours-table td:last-child { color: var(--primary-mid) !important; }
+  /* Navbar scrolled */
+  #navbar.scrolled { background: rgba(244,240,232,0.94) !important; }
+  /* Admin stat nums */
+  #bk-confirmed, #ord-processing { color: var(--primary-acc) !important; }
+  /* WA bubble pulse */
+  @keyframes waPulse{0%{transform:scale(1);opacity:0.7;}70%{transform:scale(1.45);opacity:0;}100%{opacity:0;}}
+
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div id="login-box">
+    <h2>Post Tropis</h2>
+    <p>Admin Panel · Masuk untuk melanjutkan</p>
+    <div style="display:flex;flex-direction:column;gap:0.85rem;">
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:0.75rem;" onclick="doLogin()">Masuk ke Admin</button>
+      <p id="login-err" style="font-size:0.8rem;color:#C0392B;display:none;text-align:center;">Password salah.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <div class="sidebar-logo" id="navbar-logo" style="cursor:pointer;display:flex;align-items:center;gap:0.6rem;">
+    <svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+      <circle cx="18" cy="18" r="17" fill="#2D5A40" stroke="#4A7C59" stroke-width="1"/>
+      <path d="M18 8.5c0 0-6.5 3.8-6.5 9.5s6.5 9.5 6.5 9.5" stroke="#C4A882" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M18 8.5c0 0 6.5 3.8 6.5 9.5s-6.5 9.5-6.5 9.5" stroke="#C4A882" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="18" cy="18" r="2.2" fill="#C4A882"/>
+    </svg>
+    <div>
+      <span style="display:block;">Post Tropis</span>
+      <small>Admin Panel</small>
+    </div>
+  </div>
+  <div style="padding:0.6rem 0;flex:1;">
+    <div class="sidebar-section">Menu & Pesanan</div>
+    <button class="nav-item active" onclick="switchPanel('menu',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+      <span>Kelola Menu</span>
+    </button>
+    <button class="nav-item" onclick="switchPanel('orders',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span>Pesanan Kafe</span>
+      <span class="badge-pill" id="badge-orders">0</span>
+    </button>
+
+    <div class="sidebar-section">Fasilitas</div>
+    <button class="nav-item" onclick="switchPanel('bookings',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Booking Fasilitas</span>
+      <span class="badge-pill" id="badge-bookings">0</span>
+    </button>
+    <button class="nav-item" onclick="switchPanel('calendar',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+      <span>Kalender</span>
+    </button>
+    <div class="sidebar-section">Website</div>
+    <button class="nav-item" onclick="switchPanel('media',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <span>Foto Hero & Gallery</span>
+    </button>
+  </div>
+  <div class="sidebar-footer">
+    <a href="index.html" style="font-size:0.72rem;color:rgba(249,245,239,0.35);text-decoration:none;font-family:'DM Mono',monospace;letter-spacing:0.1em;display:flex;align-items:center;gap:0.5rem;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3H6a2 2 0 00-2 2v14c0 1.1.9 2 2 2h4M17 8l-5 4 5 4M7 12h14"/></svg>
+      <span>Lihat Website</span>
+    </a>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div class="topbar">
+    <h1 id="topbar-title">Kelola Menu</h1>
+    <div id="topbar-actions">
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Tambah Menu
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- STATS (shared) -->
+    <div class="stats-grid" id="stats-area">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Menu</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-coffee">0</div><div class="stat-label">Coffee</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-nc">0</div><div class="stat-label">Non-Coffee</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-food">0</div><div class="stat-label">Food & Snacks</div></div>
+    </div>
+
+    <!-- ── PANEL MENU ── -->
+    <div class="panel active" id="panel-menu">
+      <div class="seed-banner" id="seed-banner" style="display:none;">
+        <p>🌱 Database menu kosong. Isi dengan <strong>30 menu starter</strong>?</p>
+        <button class="btn btn-primary" onclick="seedMenu()">Seed 30 Menu</button>
+      </div>
+      <div class="filter-bar">
+        <input id="menu-search" placeholder="Cari nama menu…" oninput="filterMenu()" style="flex:1;max-width:260px;"/>
+        <select id="menu-filter" onchange="filterMenu()" style="max-width:170px;">
+          <option value="">Semua Kategori</option>
+          <option value="coffee/espresso">Espresso</option>
+          <option value="coffee/manual">Manual Brew</option>
+          <option value="noncoffee">Non-Coffee</option>
+          <option value="food">Food & Snacks</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Foto</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Bestseller</th><th>Status</th><th>Aksi</th>
+          </tr></thead>
+          <tbody id="menu-tbody"><tr><td colspan="6" style="text-align:center;padding:2.5rem;color:rgba(44,40,37,0.35);">Memuat…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PANEL ORDERS ── -->
+    <div class="panel" id="panel-orders">
+      <div class="stats-grid" style="margin-bottom:1.25rem;">
+        <div class="stat-card"><div class="stat-num" id="ord-pending" style="color:#ef4444;">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-num" id="ord-processing" style="color:var(--brnl);">0</div><div class="stat-label">Diproses</div></div>
+        <div class="stat-card"><div class="stat-num" id="ord-done" style="color:var(--sage);">0</div><div class="stat-label">Selesai</div></div>
+        <div class="stat-card"><div class="stat-num" id="ord-revenue" style="font-size:1.1rem;">Rp 0</div><div class="stat-label">Revenue</div></div>
+      </div>
+      <div class="filter-bar">
+        <select id="order-filter" onchange="filterOrders()" style="max-width:180px;">
+          <option value="">Semua Status</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Diproses</option>
+          <option value="done">Selesai</option>
+          <option value="cancelled">Dibatalkan</option>
+        </select>
+      </div>
+      <div id="orders-container"><div style="text-align:center;padding:2.5rem;color:rgba(44,40,37,0.35);">Memuat…</div></div>
+    </div>
+
+    <!-- ── PANEL BOOKINGS ── -->
+    <div class="panel" id="panel-bookings">
+      <div class="stats-grid" style="margin-bottom:1.25rem;">
+        <div class="stat-card"><div class="stat-num" id="bk-pending" style="color:#ef4444;">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-num" id="bk-confirmed" style="color:var(--brnl);">0</div><div class="stat-label">Dikonfirmasi</div></div>
+        <div class="stat-card"><div class="stat-num" id="bk-done" style="color:var(--sage);">0</div><div class="stat-label">Selesai</div></div>
+        <div class="stat-card"><div class="stat-num" id="bk-total">0</div><div class="stat-label">Total Booking</div></div>
+      </div>
+      <div class="filter-bar">
+        <select id="bk-filter" onchange="filterBookings()" style="max-width:180px;">
+          <option value="">Semua Status</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Dikonfirmasi</option>
+          <option value="done">Selesai</option>
+          <option value="cancelled">Dibatalkan</option>
+        </select>
+        <select id="bk-fac-filter" onchange="filterBookings()" style="max-width:200px;">
+          <option value="">Semua Fasilitas</option>
+          <option value="Coworking">Co-Working Space</option>
+          <option value="Meeting">Meeting Room</option>
+          <option value="Studio">Studio</option>
+        </select>
+        <input id="bk-search" placeholder="Cari nama / ID…" oninput="filterBookings()" style="flex:1;max-width:220px;"/>
+      </div>
+      <div id="bookings-container"><div style="text-align:center;padding:2.5rem;color:rgba(44,40,37,0.35);">Memuat…</div></div>
+    </div>
+
+    <!-- ── PANEL CALENDAR ── -->
+    <div class="panel" id="panel-calendar">
+      <div class="cal-header">
+        <div class="cal-nav">
+          <button class="btn btn-outline btn-sm" onclick="calNav(-1)">←</button>
+          <span class="cal-title" id="cal-title">—</span>
+          <button class="btn btn-outline btn-sm" onclick="calNav(1)">→</button>
+          <button class="btn btn-sm" style="background:var(--parch);color:var(--char);" onclick="goToday()">Hari ini</button>
+        </div>
+        <div class="cal-view-toggle">
+          <button class="cal-view-btn active" id="view-month" onclick="setCalView('month')">Bulan</button>
+          <button class="cal-view-btn" id="view-week" onclick="setCalView('week')">Minggu</button>
+        </div>
+      </div>
+      <div id="cal-body"></div>
+    </div>
+
+    <!-- ── PANEL MEDIA ── -->
+    <div class="panel" id="panel-media">
+
+      <!-- ══ LOGO ══ -->
+      <div style="background:white;border:1px solid var(--parch);padding:1.5rem;margin-bottom:1.25rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <p style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.2rem;">Logo Website</p>
+            <p style="font-size:0.8rem;color:rgba(44,40,37,0.5);">Muncul di navbar semua halaman. Disarankan PNG transparan, min 200×200px.</p>
+          </div>
+          <span class="badge b-blue" id="logo-status">Belum diatur</span>
+        </div>
+
+        <!-- Current logo preview -->
+        <div id="logo-preview-wrap" style="display:none;margin-bottom:1rem;display:flex;align-items:center;gap:1.25rem;background:var(--warm);padding:1rem;border:1px solid var(--parch);">
+          <!-- Dark bg preview -->
+          <div style="background:#1A3328;padding:0.75rem 1.25rem;display:flex;align-items:center;gap:0.6rem;border-radius:2px;">
+            <img id="logo-preview-dark" src="" style="height:40px;width:auto;object-fit:contain;" alt="logo dark"/>
+            <div style="line-height:1.2;">
+              <span style="font-family:'Playfair Display',serif;font-size:1rem;color:white;display:block;">Post Tropis</span>
+              <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.25em;text-transform:uppercase;color:#6BBF88;">Café & Space</span>
+            </div>
+          </div>
+          <!-- Light bg preview -->
+          <div style="background:white;padding:0.75rem 1.25rem;display:flex;align-items:center;gap:0.6rem;border:1px solid #eee;border-radius:2px;">
+            <img id="logo-preview-light" src="" style="height:40px;width:auto;object-fit:contain;" alt="logo light"/>
+            <div style="line-height:1.2;">
+              <span style="font-family:'Playfair Display',serif;font-size:1rem;color:#1A3328;display:block;">Post Tropis</span>
+              <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.25em;text-transform:uppercase;color:#3D7A52;">Café & Space</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+          <button class="btn btn-sm btn-primary" id="logo-tab-url-btn" onclick="setLogoTab('url')">🔗 URL</button>
+          <button class="btn btn-sm btn-outline" id="logo-tab-upload-btn" onclick="setLogoTab('upload')">📁 Upload</button>
+        </div>
+
+        <div id="logo-url-panel">
+          <div class="form-group">
+            <label class="form-label">URL Logo</label>
+            <input class="form-input" id="logo-url-input" type="url" placeholder="https://... link logo PNG/JPG"/>
+          </div>
+        </div>
+
+        <div id="logo-upload-panel" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Upload Logo</label>
+            <div style="border:2px dashed var(--parch);padding:1.5rem;text-align:center;cursor:pointer;position:relative;transition:border-color 0.2s;" ondragover="this.style.borderColor='var(--brnl)'" ondragleave="this.style.borderColor=''">
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onchange="handleLogoFile(this)"
+                style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 0.5rem;color:#A07850;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              <p style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(44,40,37,0.4);">Klik atau drag file logo</p>
+              <p style="font-size:0.72rem;color:rgba(44,40,37,0.3);margin-top:0.2rem;">PNG transparan disarankan · maks 1MB</p>
+            </div>
+            <div id="logo-upload-info" style="display:none;margin-top:0.5rem;font-size:0.78rem;color:var(--brnl);" id="logo-upload-name"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.65rem;margin-top:1rem;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="saveLogo()">💾 Simpan Logo</button>
+          <button class="btn btn-danger" onclick="resetLogo()" style="font-size:0.62rem;">Hapus & Pakai SVG Default</button>
+        </div>
+      </div>
+
+      <!-- Hero Photo -->
+      <div style="background:white;border:1px solid var(--parch);padding:1.5rem;margin-bottom:1.25rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <p style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.2rem;">Foto Hero (Header Utama)</p>
+            <p style="font-size:0.8rem;color:rgba(44,40,37,0.5);">Foto besar yang muncul di latar belakang bagian atas website</p>
+          </div>
+          <span class="badge b-blue" id="hero-status">Belum diatur</span>
+        </div>
+        <!-- Current preview -->
+        <div id="hero-preview-wrap" style="margin-bottom:1rem;position:relative;display:none;">
+          <img id="hero-current-img" style="width:100%;max-height:200px;object-fit:cover;border:1px solid var(--parch);" src="" alt="Hero"/>
+          <div style="position:absolute;top:0.5rem;right:0.5rem;background:rgba(0,0,0,0.55);color:white;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.25rem 0.6rem;">Current Hero</div>
+        </div>
+        <!-- Input tabs -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+          <button class="btn btn-sm btn-primary" id="hero-tab-url-btn" onclick="setHeroTab('url')">🔗 URL</button>
+          <button class="btn btn-sm btn-outline" id="hero-tab-upload-btn" onclick="setHeroTab('upload')">📁 Upload</button>
+        </div>
+        <div id="hero-url-panel">
+          <div class="form-group">
+            <label class="form-label">URL Foto Hero</label>
+            <input class="form-input" id="hero-url-input" type="url" placeholder="https://... (Unsplash, imgBB, Google Drive publik, dll)"/>
+          </div>
+        </div>
+        <div id="hero-upload-panel" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Upload Foto Hero</label>
+            <div style="border:2px dashed var(--parch);padding:1.5rem;text-align:center;cursor:pointer;position:relative;transition:border-color 0.2s;" id="hero-drop" ondragover="this.style.borderColor='var(--brnl)'" ondragleave="this.style.borderColor=''" ondrop="handleHeroDrop(event)">
+              <input type="file" accept="image/*" onchange="handleHeroFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 0.5rem;color:#A07850;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              <p style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(44,40,37,0.4);">Klik atau drag foto hero</p>
+              <p style="font-size:0.72rem;color:rgba(44,40,37,0.3);margin-top:0.2rem;">JPG/PNG/WEBP — Disarankan landscape 1600×900px+</p>
+            </div>
+            <div id="hero-upload-preview-wrap" style="display:none;margin-top:0.75rem;">
+              <img id="hero-upload-preview" style="width:100%;max-height:160px;object-fit:cover;border:1px solid var(--parch);" src=""/>
+              <p style="font-size:0.75rem;color:var(--brnl);margin-top:0.3rem;" id="hero-upload-name"></p>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.65rem;margin-top:1rem;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="saveHeroPhoto()">💾 Simpan Foto Hero</button>
+          <button class="btn btn-danger" onclick="resetHeroPhoto()" style="font-size:0.62rem;">Hapus & Reset Default</button>
+        </div>
+      </div>
+
+      <!-- Gallery Photos -->
+      <div style="background:white;border:1px solid var(--parch);padding:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+          <div>
+            <p style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:0.2rem;">Foto Gallery</p>
+            <p style="font-size:0.8rem;color:rgba(44,40,37,0.5);">5 slot foto yang tampil di section Gallery website</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addGallerySlot()">+ Tambah Slot</button>
+        </div>
+        <div id="gallery-slots" style="display:flex;flex-direction:column;gap:1rem;"></div>
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--parch);">
+          <button class="btn btn-primary" onclick="saveAllGallery()" style="width:100%;justify-content:center;">💾 Simpan Semua Perubahan Gallery</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL: ADD/EDIT MENU ══ -->
+<div class="modal-overlay" id="menu-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">Tambah Menu</h3>
+      <button class="modal-close" onclick="closeModal('menu-modal')">✕</button>
+    </div>
+    <input type="hidden" id="edit-key"/>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nama *</label><input class="form-input" id="f-name" placeholder="Flat White"/></div>
+      <div class="form-group"><label class="form-label">Harga (Rp) *</label><input class="form-input" id="f-price" type="number" placeholder="35000"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Kategori *</label>
+        <select class="form-input" id="f-cat">
+          <option value="coffee/espresso">☕ Espresso Based</option>
+          <option value="coffee/manual">☕ Manual Brew</option>
+          <option value="noncoffee">🍵 Non-Coffee</option>
+          <option value="food">🥐 Food & Snacks</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Urutan</label><input class="form-input" id="f-order" type="number" placeholder="1" min="1"/></div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group"><label class="form-label">Deskripsi</label><textarea class="form-input" id="f-desc" rows="3" style="resize:vertical;"></textarea></div>
+    </div>
+    <!-- Image field -->
+    <div class="form-row full" style="margin-bottom:0.85rem;">
+      <div class="form-group">
+        <label class="form-label">Foto Menu</label>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+          <button type="button" class="btn btn-sm" id="img-tab-url" onclick="switchImgTab('url')" style="background:var(--brnl);color:white;">🔗 URL</button>
+          <button type="button" class="btn btn-sm btn-outline" id="img-tab-upload" onclick="switchImgTab('upload')">📁 Upload</button>
+        </div>
+        <div id="img-tab-url-panel">
+          <input class="form-input" id="f-image-url" type="url" placeholder="https://... (imgBB, Drive, dll)"/>
+        </div>
+        <div id="img-tab-upload-panel" style="display:none;">
+          <div id="img-upload-area" style="border:2px dashed #E8E2D4;padding:1rem;text-align:center;cursor:pointer;position:relative;transition:border-color 0.2s;">
+            <input type="file" accept="image/*" id="f-image-file" onchange="handleImgUpload(this)"
+              style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 0.35rem;color:#A07850;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <p style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(44,40,37,0.4);">Klik atau drag foto</p>
+            <p style="font-size:0.7rem;color:rgba(44,40,37,0.3);margin-top:0.2rem;">JPG/PNG/WEBP — maks 2MB</p>
+          </div>
+        </div>
+        <!-- Preview -->
+        <div id="img-preview-wrap" style="display:none;margin-top:0.6rem;position:relative;width:fit-content;">
+          <img id="img-preview" style="height:90px;width:auto;max-width:200px;object-fit:cover;border:1px solid #E8E2D4;" src="" alt="preview"/>
+          <button onclick="clearImg()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#C0392B;color:white;border:none;cursor:pointer;font-size:0.7rem;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-check"><input type="checkbox" id="f-bestseller"/> Bestseller 🏅</label>
+      <label class="form-check"><input type="checkbox" id="f-available" checked/> Tersedia ✅</label>
+    </div>
+    <div style="display:flex;gap:0.65rem;margin-top:1.25rem;">
+      <button class="btn btn-primary" onclick="saveMenu()" style="flex:1;justify-content:center;">Simpan</button>
+      <button class="btn btn-outline" onclick="closeModal('menu-modal')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: BOOKING DETAIL ══ -->
+<div class="modal-overlay" id="bk-modal">
+  <div class="modal-box" style="max-width:500px;">
+    <div class="modal-header">
+      <h3>Detail Booking</h3>
+      <button class="modal-close" onclick="closeModal('bk-modal')">✕</button>
+    </div>
+    <div id="bk-modal-body"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DAY DETAIL ══ -->
+<div class="modal-overlay" id="day-modal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <h3 id="day-modal-title">—</h3>
+      <button class="modal-close" onclick="closeModal('day-modal')">✕</button>
+    </div>
+    <div id="day-modal-body"></div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────
+const ADMIN_PASS = 'posttropis2025';
+const WA_BOOKING = '6282189188918';
+const fmt = n => 'Rp ' + (n||0).toLocaleString('id-ID');
+const catLabel = c => ({'coffee/espresso':'Espresso','coffee/manual':'Manual Brew','noncoffee':'Non-Coffee','food':'Food & Snacks'})[c]||c;
+const ts = v => { if(!v)return'—'; try{return new Date(typeof v==='number'?v:v).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}catch{return'—';} };
+const dateStr = d => new Date(d).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+// ─── AUTH ─────────────────────────────────────────────
+function doLogin() {
+  if (document.getElementById('login-pass').value === ADMIN_PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-pass').value = '';
+  }
+}
+
+// ─── NAV ──────────────────────────────────────────────
+const panelTitles = { menu:'Kelola Menu', orders:'Pesanan Kafe', bookings:'Booking Fasilitas', calendar:'Kalender Booking', media:'Logo, Foto Hero & Gallery' };
+const panelActions = {
+  menu: '<button class="btn btn-primary" onclick="openAddModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Tambah Menu</button>',
+  orders:'', bookings:'', calendar:'', media:''
+};
+function switchPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('topbar-title').textContent = panelTitles[name];
+  document.getElementById('topbar-actions').innerHTML = panelActions[name]||'';
+  if (name==='calendar') renderCalendar();
+  if (name==='media') renderMediaPanel(window._mediaRaw||{});
+  // update stats area
+  if (name==='menu') showMenuStats();
+  else if (name==='orders') showOrderStats();
+  else if (name==='bookings') showBookingStats();
+  else if(name==='media'){ document.getElementById('stats-area').style.display='none'; renderMediaPanel(window._mediaRaw||{}); }
+  else document.getElementById('stats-area').style.display='none';
+}
+function showMenuStats(){
+  document.getElementById('stats-area').style.display='grid';
+  updateMenuStats(window._menuRaw||{});
+}
+function showOrderStats(){
+  document.getElementById('stats-area').style.display='grid';
+  document.getElementById('stats-area').innerHTML=`
+    <div class="stat-card"><div class="stat-num" id="ord-pending" style="color:#ef4444;">0</div><div class="stat-label">Pending</div></div>
+    <div class="stat-card"><div class="stat-num" id="ord-processing" style="color:var(--brnl);">0</div><div class="stat-label">Diproses</div></div>
+    <div class="stat-card"><div class="stat-num" id="ord-done" style="color:var(--sage);">0</div><div class="stat-label">Selesai</div></div>
+    <div class="stat-card"><div class="stat-num" id="ord-revenue" style="font-size:1.1rem;">Rp 0</div><div class="stat-label">Revenue</div></div>`;
+  updateOrderStats(window._ordersRaw||{});
+}
+function showBookingStats(){
+  document.getElementById('stats-area').style.display='grid';
+  document.getElementById('stats-area').innerHTML=`
+    <div class="stat-card"><div class="stat-num" id="bk-pending" style="color:#ef4444;">0</div><div class="stat-label">Pending</div></div>
+    <div class="stat-card"><div class="stat-num" id="bk-confirmed" style="color:var(--brnl);">0</div><div class="stat-label">Dikonfirmasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="bk-done" style="color:var(--sage);">0</div><div class="stat-label">Selesai</div></div>
+    <div class="stat-card"><div class="stat-num" id="bk-total">0</div><div class="stat-label">Total Booking</div></div>`;
+  updateBookingStats(window._bookingsRaw||{});
+}
+
+// ─── MODAL ────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); });
+
+// ─── MENU STATS ───────────────────────────────────────
+function updateMenuStats(data){
+  const e=data.coffee?.espresso?Object.values(data.coffee.espresso).length:0;
+  const m=data.coffee?.manual?Object.values(data.coffee.manual).length:0;
+  const nc=data.noncoffee?Object.values(data.noncoffee).length:0;
+  const f=data.food?Object.values(data.food).length:0;
+  const total=e+m+nc+f;
+  const sa=document.getElementById('stats-area');
+  if(!sa||!sa.querySelector('#stat-total'))return;
+  sa.innerHTML=`
+    <div class="stat-card"><div class="stat-num" id="stat-total">${total}</div><div class="stat-label">Total Menu</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-coffee">${e+m}</div><div class="stat-label">Coffee</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-nc">${nc}</div><div class="stat-label">Non-Coffee</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-food">${f}</div><div class="stat-label">Food & Snacks</div></div>`;
+  document.getElementById('seed-banner').style.display=total===0?'flex':'none';
+}
+
+// ─── FLATTEN MENU ─────────────────────────────────────
+function flattenMenu(data){
+  const rows=[];
+  const push=(cat,obj)=>obj&&Object.entries(obj).forEach(([k,v])=>rows.push({key:k,cat,...v}));
+  push('coffee/espresso',data.coffee?.espresso);
+  push('coffee/manual',data.coffee?.manual);
+  push('noncoffee',data.noncoffee);
+  push('food',data.food);
+  return rows;
+}
+let _allMenuRows=[];
+function renderMenuTable(data){ _allMenuRows=flattenMenu(data); filterMenu(); }
+function filterMenu(){
+  const q=(document.getElementById('menu-search')?.value||'').toLowerCase();
+  const cat=document.getElementById('menu-filter')?.value||'';
+  const rows=_allMenuRows.filter(r=>(!q||r.name?.toLowerCase().includes(q))&&(!cat||r.cat===cat));
+  const tbody=document.getElementById('menu-tbody');
+  if(!tbody)return;
+  if(rows.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:rgba(44,40,37,0.35);">Tidak ada menu.</td></tr>';return;}
+  tbody.innerHTML=rows.map(r=>`
+    <tr>
+      <td style="padding:0.5rem 0.9rem;">${r.image?`<img src="${r.image}" style="width:44px;height:44px;object-fit:cover;border-radius:2px;border:1px solid #E8E2D4;" onerror="this.style.display='none'"/>`:'<div style="width:44px;height:44px;background:#f3f4f6;border:1px solid #E8E2D4;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🍃</div>'}</td>
+      <td><strong>${r.name||'—'}</strong><br/><span style="font-size:0.75rem;color:rgba(44,40,37,0.45);">${(r.desc||'').slice(0,50)}${(r.desc||'').length>50?'…':''}</span></td>
+      <td><span class="badge b-gray">${catLabel(r.cat)}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:0.83rem;color:var(--brnl);">${fmt(r.price)}</span></td>
+      <td>${r.bestseller?'<span class="badge b-best">Best</span>':'<span style="color:rgba(44,40,37,0.25);font-size:0.75rem;">—</span>'}</td>
+      <td>${r.available!==false?'<span class="badge b-green">Tersedia</span>':'<span class="badge b-red">Habis</span>'}</td>
+      <td><div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="openEditModal('${r.key}','${r.cat}')">Edit</button>
+        <button class="btn btn-sm ${r.available!==false?'btn-warn':'btn-success'}" onclick="toggleAvail('${r.key}','${r.cat}',${r.available!==false})">${r.available!==false?'Habis':'Aktifkan'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMenu('${r.key}','${r.cat}','${(r.name||'').replace(/'/g,"\\'")}')">Hapus</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ─── MENU MODAL ───────────────────────────────────────
+function openAddModal(){
+  document.getElementById('modal-title').textContent='Tambah Menu Baru';
+  document.getElementById('edit-key').value='';
+  ['f-name','f-price','f-desc','f-order'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-cat').value='coffee/espresso';
+  document.getElementById('f-bestseller').checked=false;
+  document.getElementById('f-available').checked=true;
+  clearImg();
+  openModal('menu-modal');
+}
+function openEditModal(key,cat){
+  const row=_allMenuRows.find(r=>r.key===key&&r.cat===cat);if(!row)return;
+  document.getElementById('modal-title').textContent='Edit Menu';
+  document.getElementById('edit-key').value=key+'|'+cat;
+  document.getElementById('f-name').value=row.name||'';
+  document.getElementById('f-price').value=row.price||'';
+  document.getElementById('f-cat').value=cat;
+  document.getElementById('f-desc').value=row.desc||'';
+  document.getElementById('f-order').value=row.order||'';
+  document.getElementById('f-bestseller').checked=!!row.bestseller;
+  document.getElementById('f-available').checked=row.available!==false;
+  if(row.image){setImgPreview(row.image);}else{clearImg();}
+  openModal('menu-modal');
+}
+function catToPath(cat){ return cat.startsWith('coffee/')?'menu/coffee/'+cat.split('/')[1]:'menu/'+cat; }
+async function saveMenu(){
+  const name=document.getElementById('f-name').value.trim();
+  const price=parseInt(document.getElementById('f-price').value);
+  const cat=document.getElementById('f-cat').value;
+  if(!name||!price){toast('Nama dan harga wajib diisi ✗');return;}
+  const imgUrl=window._currentImgData||document.getElementById('f-image-url').value.trim()||null;
+  const item={name,price,desc:document.getElementById('f-desc').value.trim(),order:parseInt(document.getElementById('f-order').value)||99,bestseller:document.getElementById('f-bestseller').checked,available:document.getElementById('f-available').checked,image:imgUrl};
+  const editRaw=document.getElementById('edit-key').value;
+  const path=catToPath(cat);
+  if(editRaw){
+    const[oldKey,oldCat]=editRaw.split('|');
+    if(oldCat!==cat){
+      await window.FB.remove(window.FB.ref(window.FB.db,catToPath(oldCat)+'/'+oldKey));
+      await window.FB.set(window.FB.push(window.FB.ref(window.FB.db,path)),item);
+    } else { await window.FB.set(window.FB.ref(window.FB.db,path+'/'+oldKey),item); }
+    toast('Menu diperbarui ✓');
+  } else {
+    await window.FB.set(window.FB.push(window.FB.ref(window.FB.db,path)),item);
+    toast('Menu ditambahkan ✓');
+  }
+  closeModal('menu-modal');
+}
+async function toggleAvail(key,cat,isAvail){
+  await window.FB.update(window.FB.ref(window.FB.db,catToPath(cat)+'/'+key),{available:!isAvail});
+  toast(isAvail?'Menu ditandai habis':'Menu diaktifkan ✓');
+}
+async function deleteMenu(key,cat,name){
+  if(!confirm(`Hapus "${name}"?`))return;
+  await window.FB.remove(window.FB.ref(window.FB.db,catToPath(cat)+'/'+key));
+  toast(`"${name}" dihapus.`);
+}
+
+// ─── ORDERS ───────────────────────────────────────────
+function updateOrderStats(data){
+  const orders=Object.values(data);
+  const el=id=>document.getElementById(id);
+  if(!el('ord-pending'))return;
+  el('ord-pending').textContent   =orders.filter(o=>o.status==='pending').length;
+  el('ord-processing').textContent=orders.filter(o=>o.status==='processing').length;
+  el('ord-done').textContent      =orders.filter(o=>o.status==='done').length;
+  el('ord-revenue').textContent   =fmt(orders.filter(o=>o.status==='done').reduce((s,o)=>s+(o.total||0),0));
+  const pending=orders.filter(o=>o.status==='pending').length;
+  const b=document.getElementById('badge-orders');
+  b.style.display=pending>0?'':'none'; b.textContent=pending;
+}
+let _allOrders={};
+function renderOrders(data){ _allOrders=data; filterOrders(); }
+function filterOrders(){
+  const fv=document.getElementById('order-filter')?.value||'';
+  const entries=Object.entries(_allOrders).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  const filtered=fv?entries.filter(([,o])=>o.status===fv):entries;
+  const c=document.getElementById('orders-container');if(!c)return;
+  if(filtered.length===0){c.innerHTML='<div style="text-align:center;padding:2.5rem;color:rgba(44,40,37,0.35);">Tidak ada pesanan.</div>';return;}
+  const sb=s=>({pending:'<span class="badge b-yellow">Pending</span>',processing:'<span class="badge b-blue">Diproses</span>',done:'<span class="badge b-green">Selesai</span>',cancelled:'<span class="badge b-red">Dibatalkan</span>'})[s]||`<span class="badge b-gray">${s}</span>`;
+  c.innerHTML=filtered.map(([key,o])=>`
+    <div class="order-card">
+      <div class="order-header">
+        <div><div class="order-num">${o.orderNumber||key.slice(-6).toUpperCase()}</div>
+        <div class="order-meta">${o.customerName||'—'} ${o.tableNote?'· '+o.tableNote:''}</div>
+        <div class="order-meta">${({qris:'📱',bca:'🏦',cash:'💵'})[o.paymentMethod]||'💳'} ${(o.paymentMethod||'').toUpperCase()} · ${ts(o.createdAt)}</div></div>
+        <div>${sb(o.status)}</div>
+      </div>
+      <div class="order-items">
+        ${(o.items||[]).map(i=>`<div class="order-item-row"><span>${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
+        <div class="order-item-row" style="color:rgba(44,40,37,0.4);font-size:0.78rem;"><span>Pajak 10%</span><span>${fmt(o.tax)}</span></div>
+        <div class="order-total"><span>Total</span><span style="color:var(--brnl);">${fmt(o.total)}</span></div>
+      </div>
+      <div class="order-actions">
+        ${o.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${key}','processing')">▶ Proses</button>`:''}
+        ${o.status==='processing'?`<button class="btn btn-success btn-sm" onclick="updateOrderStatus('${key}','done')">✓ Selesai</button>`:''}
+        ${o.status!=='done'&&o.status!=='cancelled'?`<button class="btn btn-danger btn-sm" onclick="updateOrderStatus('${key}','cancelled')">✕ Batalkan</button>`:''}
+        <button class="btn btn-outline btn-sm" onclick="deleteOrder('${key}','${o.orderNumber||''}')">Hapus</button>
+      </div>
+    </div>`).join('');
+}
+async function updateOrderStatus(key,status){
+  await window.FB.update(window.FB.ref(window.FB.db,'orders/'+key),{status});
+  toast('Status pesanan diperbarui ✓');
+}
+async function deleteOrder(key,num){
+  if(!confirm(`Hapus pesanan ${num||key}?`))return;
+  await window.FB.remove(window.FB.ref(window.FB.db,'orders/'+key));
+  toast('Pesanan dihapus.');
+}
+
+// ─── BOOKINGS ─────────────────────────────────────────
+function updateBookingStats(data){
+  const bks=Object.values(data);
+  const el=id=>document.getElementById(id);
+  if(!el('bk-pending'))return;
+  el('bk-pending').textContent  =bks.filter(b=>b.status==='pending').length;
+  el('bk-confirmed').textContent=bks.filter(b=>b.status==='confirmed').length;
+  el('bk-done').textContent     =bks.filter(b=>b.status==='done').length;
+  el('bk-total').textContent    =bks.length;
+  const pending=bks.filter(b=>b.status==='pending').length;
+  const badge=document.getElementById('badge-bookings');
+  badge.style.display=pending>0?'':'none'; badge.textContent=pending;
+}
+
+let _allBookings={};
+function renderBookings(data){ _allBookings=data; filterBookings(); }
+function filterBookings(){
+  const fv=document.getElementById('bk-filter')?.value||'';
+  const ff=document.getElementById('bk-fac-filter')?.value||'';
+  const q=(document.getElementById('bk-search')?.value||'').toLowerCase();
+  const entries=Object.entries(_allBookings).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  const filtered=entries.filter(([key,b])=>{
+    if(fv&&b.status!==fv)return false;
+    if(ff&&!(b.facility||'').includes(ff))return false;
+    if(q&&!(b.name||'').toLowerCase().includes(q)&&!(b.bookingId||'').toLowerCase().includes(q))return false;
+    return true;
+  });
+  const c=document.getElementById('bookings-container');if(!c)return;
+  if(filtered.length===0){c.innerHTML='<div style="text-align:center;padding:2.5rem;color:rgba(44,40,37,0.35);">Tidak ada booking.</div>';return;}
+  const sb=s=>({
+    pending:   '<span class="badge b-yellow">Pending</span>',
+    confirmed: '<span class="badge b-blue">Dikonfirmasi</span>',
+    done:      '<span class="badge b-green">Selesai</span>',
+    cancelled: '<span class="badge b-red">Dibatalkan</span>'
+  })[s]||`<span class="badge b-gray">${s||'—'}</span>`;
+  const dpIcon=m=>({qris:'📱',bca:'🏦',cash:'💵'})[m]||'💳';
+  c.innerHTML=filtered.map(([key,b])=>`
+    <div class="bk-card">
+      <div class="bk-header">
+        <div>
+          <div class="bk-id">${b.bookingId||key.slice(-6).toUpperCase()}</div>
+          <div class="bk-facility">${b.facility||'—'}</div>
+          <div class="bk-meta">👤 ${b.name||'—'} · 📱 ${b.wa||'—'}</div>
+        </div>
+        <div>${sb(b.status)}</div>
+      </div>
+      <div class="bk-body">
+        <div class="bk-info-row">
+          <span>📅 ${b.date?dateStr(b.date):'—'}</span>
+          <span>🕐 ${b.time||'—'} WIT</span>
+          <span>${dpIcon(b.dpMethod)} DP: ${(b.dpMethod||'—').toUpperCase()}</span>
+          <span>📝 ${ts(b.createdAt)}</span>
+        </div>
+        ${b.note?`<div style="font-size:0.8rem;color:rgba(44,40,37,0.55);background:var(--warm);padding:0.4rem 0.6rem;margin-top:0.4rem;">📌 ${b.note}</div>`:''}
+        <div class="bk-actions">
+          ${b.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="confirmBooking('${key}','${(b.wa||'').replace(/'/g,"\\'")}','${(b.name||'').replace(/'/g,"\\'")}','${(b.bookingId||'').replace(/'/g,"\\'")}','${(b.facility||'').replace(/'/g,"\\'")}','${b.date||''}','${b.time||''}')">✓ Konfirmasi + WA</button>`:''}
+          ${b.status==='confirmed'?`<button class="btn btn-success btn-sm" onclick="updateBkStatus('${key}','done')">✓ Tandai Selesai</button>`:''}
+          ${b.status!=='done'&&b.status!=='cancelled'?`<button class="btn btn-danger btn-sm" onclick="cancelBooking('${key}','${(b.wa||'').replace(/'/g,"\\'")}','${(b.name||'').replace(/'/g,"\\'")}','${(b.bookingId||'').replace(/'/g,"\\'")}')">✕ Batalkan + WA</button>`:''}
+          <button class="btn btn-outline btn-sm" onclick="openBkDetail('${key}')">Detail</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBooking('${key}')">Hapus</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function confirmBooking(key,wa,name,bookingId,facility,date,time){
+  await window.FB.update(window.FB.ref(window.FB.db,'bookings/'+key),{status:'confirmed'});
+  const msg=encodeURIComponent(`Halo ${name}! 🎉\n\nBooking kamu di *Post Tropis* sudah *DIKONFIRMASI*!\n\n📋 *ID Booking:* ${bookingId}\n🏢 *Fasilitas:* ${facility}\n📅 *Tanggal:* ${date}\n🕐 *Jam:* ${time} WIT\n\nSampai jumpa di Post Tropis! ☕\n_Tim Post Tropis_`);
+  window.open(`https://wa.me/${wa.replace(/\D/g,'')||WA_BOOKING}?text=${msg}`,'_blank');
+  toast('Booking dikonfirmasi & WA terkirim ✓');
+}
+async function cancelBooking(key,wa,name,bookingId){
+  if(!confirm('Batalkan booking ini?'))return;
+  await window.FB.update(window.FB.ref(window.FB.db,'bookings/'+key),{status:'cancelled'});
+  const msg=encodeURIComponent(`Halo ${name},\n\nMohon maaf, booking kamu (*${bookingId}*) di Post Tropis terpaksa *dibatalkan*.\n\nSilakan hubungi kami untuk reschedule atau info lebih lanjut.\n\n📞 ${WA_BOOKING}\n_Tim Post Tropis_`);
+  window.open(`https://wa.me/${wa.replace(/\D/g,'')||WA_BOOKING}?text=${msg}`,'_blank');
+  toast('Booking dibatalkan & WA terkirim.');
+}
+async function updateBkStatus(key,status){
+  await window.FB.update(window.FB.ref(window.FB.db,'bookings/'+key),{status});
+  toast('Status booking diperbarui ✓');
+}
+async function deleteBooking(key){
+  if(!confirm('Hapus booking ini?'))return;
+  await window.FB.remove(window.FB.ref(window.FB.db,'bookings/'+key));
+  toast('Booking dihapus.');
+}
+function openBkDetail(key){
+  const b=_allBookings[key]; if(!b)return;
+  const sb=s=>({pending:'<span class="badge b-yellow">Pending</span>',confirmed:'<span class="badge b-blue">Dikonfirmasi</span>',done:'<span class="badge b-green">Selesai</span>',cancelled:'<span class="badge b-red">Dibatalkan</span>'})[s]||`<span class="badge b-gray">${s}</span>`;
+  document.getElementById('bk-modal-body').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:0.75rem;font-size:0.88rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><strong style="font-family:'DM Mono',monospace;font-size:0.8rem;letter-spacing:0.1em;">${b.bookingId||key.slice(-6)}</strong>${sb(b.status)}</div>
+      <div style="background:var(--warm);padding:0.85rem;display:flex;flex-direction:column;gap:0.45rem;">
+        <div><span style="color:rgba(44,40,37,0.5);">Fasilitas:</span> <strong>${b.facility||'—'}</strong></div>
+        <div><span style="color:rgba(44,40,37,0.5);">Tanggal:</span> ${b.date?dateStr(b.date):'—'}</div>
+        <div><span style="color:rgba(44,40,37,0.5);">Jam Mulai:</span> ${b.time||'—'} WIT</div>
+        <div><span style="color:rgba(44,40,37,0.5);">Metode DP:</span> ${(b.dpMethod||'—').toUpperCase()}</div>
+        <div><span style="color:rgba(44,40,37,0.5);">Dibuat:</span> ${ts(b.createdAt)}</div>
+      </div>
+      <div style="background:var(--parch);padding:0.85rem;display:flex;flex-direction:column;gap:0.35rem;">
+        <div><strong>👤 ${b.name||'—'}</strong></div>
+        <div>📱 ${b.wa||'—'}</div>
+        ${b.note?`<div style="margin-top:0.25rem;font-size:0.82rem;color:rgba(44,40,37,0.6);">📌 ${b.note}</div>`:''}
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <a href="https://wa.me/${(b.wa||WA_BOOKING).replace(/\D/g,'')}" target="_blank" class="btn btn-wa btn-sm">📱 Chat WA</a>
+        ${b.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="closeModal('bk-modal');confirmBooking('${key}','${(b.wa||'').replace(/'/g,"\\'")}','${(b.name||'').replace(/'/g,"\\'")}','${b.bookingId||''}','${(b.facility||'').replace(/'/g,"\\'")}','${b.date||''}','${b.time||''}')">✓ Konfirmasi</button>`:''}
+      </div>
+    </div>`;
+  openModal('bk-modal');
+}
+
+// ─── CALENDAR ─────────────────────────────────────────
+let calView='month';
+let calDate=new Date();
+function setCalView(v){ calView=v; document.getElementById('view-month').classList.toggle('active',v==='month'); document.getElementById('view-week').classList.toggle('active',v==='week'); renderCalendar(); }
+function calNav(d){ if(calView==='month'){calDate.setMonth(calDate.getMonth()+d);}else{calDate.setDate(calDate.getDate()+7*d);} renderCalendar(); }
+function goToday(){ calDate=new Date(); renderCalendar(); }
+
+function getFacilityClass(facility=''){
+  const f=facility.toLowerCase();
+  if(f.includes('cowork'))return'cowork';
+  if(f.includes('meeting'))return'meeting';
+  if(f.includes('studio'))return'studio';
+  return'cowork';
+}
+
+function renderCalendar(){
+  if(!document.getElementById('panel-calendar').classList.contains('active'))return;
+  if(calView==='month') renderMonthCal();
+  else renderWeekCal();
+}
+
+function renderMonthCal(){
+  const y=calDate.getFullYear(), m=calDate.getMonth();
+  document.getElementById('cal-title').textContent=calDate.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  const firstDay=new Date(y,m,1).getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const daysInPrev=new Date(y,m,0).getDate();
+  const today=new Date();
+  // all bookings indexed by date
+  const bkByDate={};
+  Object.entries(window._bookingsRaw||{}).forEach(([key,b])=>{
+    if(!b.date||b.status==='cancelled')return;
+    if(!bkByDate[b.date])bkByDate[b.date]=[];
+    bkByDate[b.date].push({key,...b});
+  });
+  const days=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  let html=`<div class="cal-month"><div class="cal-grid-head">${days.map(d=>`<div class="cal-day-label">${d}</div>`).join('')}</div><div class="cal-grid">`;
+  // prev month trailing
+  for(let i=0;i<firstDay;i++){
+    const d=daysInPrev-firstDay+1+i;
+    html+=`<div class="cal-cell other-month"><div class="cal-date">${d}</div></div>`;
+  }
+  // current month
+  for(let d=1;d<=daysInMonth;d++){
+    const dateKey=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=today.getDate()===d&&today.getMonth()===m&&today.getFullYear()===y;
+    const events=bkByDate[dateKey]||[];
+    const maxShow=2;
+    const shown=events.slice(0,maxShow);
+    const more=events.length-maxShow;
+    html+=`<div class="cal-cell${isToday?' today':''}" onclick="openDayModal('${dateKey}')">
+      <div class="cal-date">${d}</div>
+      ${shown.map(e=>`<div class="cal-event ${getFacilityClass(e.facility)}" title="${e.name} — ${e.facility}">${e.time||''} ${(e.name||'').split(' ')[0]}</div>`).join('')}
+      ${more>0?`<div class="cal-more">+${more} lagi</div>`:''}
+    </div>`;
+  }
+  // next month leading
+  const totalCells=firstDay+daysInMonth;
+  const remaining=totalCells%7===0?0:7-(totalCells%7);
+  for(let i=1;i<=remaining;i++) html+=`<div class="cal-cell other-month"><div class="cal-date">${i}</div></div>`;
+  html+=`</div></div>`;
+
+  // Legend
+  html+=`<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;font-size:0.72rem;font-family:'DM Mono',monospace;">
+    <span><span class="cal-event cowork" style="display:inline-block;padding:0.1rem 0.5rem;border-radius:2px;">■</span> Co-Working</span>
+    <span><span class="cal-event meeting" style="display:inline-block;padding:0.1rem 0.5rem;border-radius:2px;">■</span> Meeting Room</span>
+    <span><span class="cal-event studio" style="display:inline-block;padding:0.1rem 0.5rem;border-radius:2px;">■</span> Studio</span>
+  </div>`;
+  document.getElementById('cal-body').innerHTML=html;
+}
+
+function renderWeekCal(){
+  // Get start of week (Sunday)
+  const startOfWeek=new Date(calDate);
+  startOfWeek.setDate(calDate.getDate()-calDate.getDay());
+  const endOfWeek=new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate()+6);
+  document.getElementById('cal-title').textContent=
+    startOfWeek.toLocaleDateString('id-ID',{day:'numeric',month:'short'})+' – '+
+    endOfWeek.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+
+  const today=new Date();
+  const days=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(startOfWeek); d.setDate(startOfWeek.getDate()+i);
+    days.push(d);
+  }
+
+  // Index bookings by date
+  const bkByDate={};
+  Object.entries(window._bookingsRaw||{}).forEach(([key,b])=>{
+    if(!b.date||b.status==='cancelled')return;
+    if(!bkByDate[b.date])bkByDate[b.date]=[];
+    bkByDate[b.date].push({key,...b});
+  });
+
+  const hours=Array.from({length:16},(_,i)=>i+7); // 07:00 - 22:00
+  const dayNames=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+  let html=`<div class="cal-week"><div class="week-grid">`;
+  // Header row
+  html+=`<div class="week-head-cell"></div>`;
+  days.forEach((d,i)=>{
+    const isToday=d.toDateString()===today.toDateString();
+    html+=`<div class="week-head-cell">
+      <div class="week-head-label">${dayNames[i]}</div>
+      <div class="week-head-date${isToday?' today':''}">${d.getDate()}</div>
+    </div>`;
+  });
+  // Time slots
+  hours.forEach(h=>{
+    html+=`<div class="week-time-col" style="grid-column:1;padding-top:0.3rem;">${String(h).padStart(2,'0')}:00</div>`;
+    days.forEach(d=>{
+      const dateKey=d.toISOString().split('T')[0];
+      const events=(bkByDate[dateKey]||[]).filter(e=>{
+        if(!e.time)return false;
+        const eH=parseInt(e.time.split(':')[0]);
+        return eH===h;
+      });
+      html+=`<div class="week-slot" style="position:relative;">
+        ${events.map(e=>`<div class="week-event ${getFacilityClass(e.facility)}" onclick="openBkDetail('${e.key}')" title="${e.name} — ${e.facility}">
+          <strong>${e.time}</strong> ${(e.name||'').split(' ')[0]}<br/><span style="opacity:0.8;font-size:0.55rem;">${(e.facility||'').split('—')[0].trim()}</span>
+        </div>`).join('')}
+      </div>`;
+    });
+  });
+  html+=`</div></div>`;
+  html+=`<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;font-size:0.72rem;font-family:'DM Mono',monospace;">
+    <span><span class="cal-event cowork" style="display:inline-block;padding:0.1rem 0.5rem;border-radius:2px;">■</span> Co-Working</span>
+    <span><span class="cal-event meeting" style="display:inline-block;padding:0.1rem 0.5rem;border-radius:2px;">■</span> Meeting Room</span>
+    <span><span class="cal-event studio" style="display:inline-block;padding:0.1rem 0.5rem;border-radius:2px;">■</span> Studio</span>
+  </div>`;
+  document.getElementById('cal-body').innerHTML=html;
+}
+
+function openDayModal(dateKey){
+  const bks=Object.entries(window._bookingsRaw||{})
+    .filter(([,b])=>b.date===dateKey&&b.status!=='cancelled')
+    .sort((a,b)=>(a[1].time||'').localeCompare(b[1].time||''));
+  document.getElementById('day-modal-title').textContent=
+    new Date(dateKey+'T12:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const sb=s=>({pending:'<span class="badge b-yellow">Pending</span>',confirmed:'<span class="badge b-blue">Dikonfirmasi</span>',done:'<span class="badge b-green">Selesai</span>'})[s]||`<span class="badge b-gray">${s}</span>`;
+  if(bks.length===0){
+    document.getElementById('day-modal-body').innerHTML='<div style="text-align:center;padding:2rem;color:rgba(44,40,37,0.35);">Tidak ada booking hari ini.</div>';
+  } else {
+    document.getElementById('day-modal-body').innerHTML=bks.map(([key,b])=>`
+      <div class="day-bk-item">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.3rem;">
+          <div class="fac">${b.facility||'—'}</div>${sb(b.status)}
+        </div>
+        <div class="meta">🕐 ${b.time||'—'} WIT · 👤 ${b.name||'—'} · 📱 ${b.wa||'—'}</div>
+        ${b.note?`<div class="meta" style="margin-top:0.2rem;">📌 ${b.note}</div>`:''}
+        <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+          ${b.status==='pending'?`<button class="btn btn-primary btn-xs" onclick="closeModal('day-modal');confirmBooking('${key}','${(b.wa||'').replace(/'/g,"\\'")}','${(b.name||'').replace(/'/g,"\\'")}','${b.bookingId||''}','${(b.facility||'').replace(/'/g,"\\'")}','${b.date||''}','${b.time||''}')">✓ Konfirmasi</button>`:''}
+          <button class="btn btn-outline btn-xs" onclick="closeModal('day-modal');openBkDetail('${key}')">Detail</button>
+        </div>
+      </div>`).join('');
+  }
+  openModal('day-modal');
+}
+
+// ─── TOAST / SOUND ────────────────────────────────────
+function toast(msg,dur=2500){
+  const t=document.getElementById('admin-toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ─── SEED 30 MENU ─────────────────────────────────────
+async function seedMenu(){
+  const seed={
+    coffee:{
+      espresso:[
+        {name:'Post Tropis Signature',price:38000,desc:'Blend eksklusif — espresso bold dengan sentuhan cokelat gelap dan karamel kompleks.',bestseller:true,available:true,order:1},
+        {name:'Cappuccino',price:35000,desc:'Double shot, susu steam sempurna, microfoam lembut dengan rasio klasik 1:1:1.',bestseller:false,available:true,order:2},
+        {name:'Flat White',price:36000,desc:'Ristretto double shot dengan sedikit susu panas — creamy, intense, dan buttery.',bestseller:true,available:true,order:3},
+        {name:'Cortado',price:32000,desc:'Equal parts espresso dan susu hangat, mengurangi keasaman tanpa kehilangan karakter.',bestseller:false,available:true,order:4},
+        {name:'Dirty Matcha',price:42000,desc:'Shot espresso dituang perlahan di atas matcha latte — dua dunia yang bertemu indah.',bestseller:true,available:true,order:5},
+        {name:'Affogato',price:40000,desc:'Satu scoop vanilla ice cream di-"drowning" dalam espresso panas. Simpel. Sempurna.',bestseller:false,available:true,order:6},
+        {name:'Piccolo Latte',price:33000,desc:'Ristretto dengan steamed milk dalam gelas kecil — intense tapi smooth.',bestseller:false,available:true,order:7},
+        {name:'Lungo',price:30000,desc:'Espresso dengan ekstraksi panjang — lebih ringan, lebih besar, lebih santai.',bestseller:false,available:true,order:8},
+        {name:'Café Mocha',price:38000,desc:'Espresso, dark chocolate premium, susu steam, dan whipped cream ringan.',bestseller:false,available:true,order:9},
+        {name:'Latte Gula Aren',price:39000,desc:'Espresso dengan susu segar dan manisnya gula aren Sulawesi asli.',bestseller:true,available:true,order:10},
+      ],
+      manual:[
+        {name:'V60 Pour Over',price:45000,desc:'Single origin pilihan hari ini, pour-over sabar untuk profil citrus dan floral.',bestseller:true,available:true,order:1},
+        {name:'Aeropress',price:42000,desc:'Pressure brewing yang menghasilkan kopi pekat, smooth, body medium.',bestseller:false,available:true,order:2},
+        {name:'Chemex',price:48000,desc:'Filter tebal menahan semua minyak kopi untuk hasil bersih dan tea-like.',bestseller:false,available:true,order:3},
+        {name:'Cold Brew',price:40000,desc:'Kopi direndam 18 jam dalam air dingin — smooth, low acid, refreshing.',bestseller:true,available:true,order:4},
+        {name:'Siphon Coffee',price:55000,desc:'Teknik seduh teatrikal — kopi crystal-clear dengan aroma maksimal.',bestseller:false,available:true,order:5},
+      ]
+    },
+    noncoffee:[
+      {name:'Ceremonial Matcha',price:40000,desc:'Grade ceremonial dari Uji, Kyoto — dikocok dengan chasen bamboo.',bestseller:true,available:true,order:1},
+      {name:'Matcha Latte',price:38000,desc:'Matcha premium dengan susu oat pilihan — creamy, earthy, sedikit manis.',bestseller:true,available:true,order:2},
+      {name:'Hojicha Latte',price:36000,desc:'Teh hijau Jepang yang dipanggang — aroma hazelnut dan caramel yang hangat.',bestseller:false,available:true,order:3},
+      {name:'Earl Grey Latte',price:35000,desc:'Teh bergamot berkualitas tinggi dengan susu steam — London Fog ala Post Tropis.',bestseller:false,available:true,order:4},
+      {name:'Dark Chocolate',price:38000,desc:'Cokelat 72% single-origin dari Jembrana, Bali. Rich dan kompleks.',bestseller:true,available:true,order:5},
+      {name:'Butterfly Pea Lemonade',price:32000,desc:'Bunga telang biru berubah ungu saat lemon ditambahkan.',bestseller:false,available:true,order:6},
+      {name:'Yuzu Sparkling',price:36000,desc:'Jeruk yuzu Jepang dengan soda natural — segar dan menyegarkan.',bestseller:false,available:true,order:7},
+      {name:'Taro Milk Tea',price:37000,desc:'Taro Jepang yang creamy dengan teh black pilihan dan brown sugar syrup.',bestseller:true,available:true,order:8},
+    ],
+    food:[
+      {name:'Croissant Butter',price:28000,desc:'Dipanggang fresh pagi hari — lapisan kulit renyah, dalam lembap dan mentega.',bestseller:true,available:true,order:1},
+      {name:'Banana Bread',price:30000,desc:'Pisang Ambon matang pilihan dengan walnut cincang.',bestseller:true,available:true,order:2},
+      {name:'Avocado Toast',price:55000,desc:'Sourdough artisan, alpukat tumbuk berbumbu, telur poached, dan furikake.',bestseller:false,available:true,order:3},
+      {name:'Tiramisu',price:45000,desc:'Resep klasik Italia — lady finger, mascarpone lembut, espresso, cocoa premium.',bestseller:true,available:true,order:4},
+      {name:'Kouign-Amann',price:35000,desc:'Pastry Brittany berlapis gula karamel crispy.',bestseller:false,available:true,order:5},
+      {name:'Overnight Oat',price:40000,desc:'Oat rendam semalam dengan granola renyah, fresh berries, dan madu lokal.',bestseller:false,available:true,order:6},
+      {name:'French Toast',price:48000,desc:'Brioche tebal direndam custard vanilla, golden, dengan maple syrup.',bestseller:false,available:true,order:7},
+    ]
+  };
+  for(const[sub,items] of Object.entries(seed.coffee))
+    for(const item of items){ const r=window.FB.push(window.FB.ref(window.FB.db,`menu/coffee/${sub}`)); await window.FB.set(r,item); }
+  for(const item of seed.noncoffee){ const r=window.FB.push(window.FB.ref(window.FB.db,'menu/noncoffee')); await window.FB.set(r,item); }
+  for(const item of seed.food){ const r=window.FB.push(window.FB.ref(window.FB.db,'menu/food')); await window.FB.set(r,item); }
+  toast('30 menu berhasil ditambahkan! ✓');
+}
+
+
+/* ── Image tab & upload ── */
+function switchImgTab(tab){
+  document.getElementById('img-tab-url-panel').style.display   = tab==='url'    ?'':'none';
+  document.getElementById('img-tab-upload-panel').style.display= tab==='upload' ?'':'none';
+  document.getElementById('img-tab-url').style.background   = tab==='url'    ?'var(--brnl)':'transparent';
+  document.getElementById('img-tab-url').style.color        = tab==='url'    ?'white':'var(--brn)';
+  document.getElementById('img-tab-upload').style.background= tab==='upload' ?'var(--brnl)':'transparent';
+  document.getElementById('img-tab-upload').style.color     = tab==='upload' ?'white':'var(--brn)';
+  if(tab==='url')window._currentImgData=null;
+}
+function setImgPreview(src){
+  const img=document.getElementById('img-preview');
+  const wrap=document.getElementById('img-preview-wrap');
+  img.src=src; wrap.style.display='block';
+}
+function clearImg(){
+  window._currentImgData=null;
+  document.getElementById('f-image-url').value='';
+  document.getElementById('img-preview').src='';
+  document.getElementById('img-preview-wrap').style.display='none';
+  switchImgTab('url');
+}
+function handleImgUpload(input){
+  const file=input.files[0]; if(!file)return;
+  if(file.size>2*1024*1024){toast('File terlalu besar (maks 2MB) ✗');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    window._currentImgData=e.target.result;
+    setImgPreview(e.target.result);
+    toast('Foto siap diupload ✓');
+  };
+  reader.readAsDataURL(file);
+}
+/* Watch URL input for preview */
+document.addEventListener('DOMContentLoaded',function(){
+  var urlInput=document.getElementById('f-image-url');
+  if(urlInput){
+    urlInput.addEventListener('blur',function(){
+      if(this.value.trim()){setImgPreview(this.value.trim());}
+    });
+  }
+});
+
+
+
+/* ═══════════════════════════════════════════
+   LOGO MANAGEMENT
+═══════════════════════════════════════════ */
+let _logoUploadData = null;
+
+function setLogoTab(tab){
+  document.getElementById('logo-url-panel').style.display    = tab==='url'    ? '' : 'none';
+  document.getElementById('logo-upload-panel').style.display = tab==='upload' ? '' : 'none';
+  document.getElementById('logo-tab-url-btn').className    = 'btn btn-sm '+(tab==='url'?'btn-primary':'btn-outline');
+  document.getElementById('logo-tab-upload-btn').className = 'btn btn-sm '+(tab==='upload'?'btn-primary':'btn-outline');
+  if(tab==='url') _logoUploadData=null;
+}
+
+function handleLogoFile(input){
+  const file=input.files[0]; if(!file) return;
+  if(file.size > 1*1024*1024){ toast('File terlalu besar (maks 1MB) ✗'); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _logoUploadData=e.target.result;
+    previewLogo(e.target.result);
+    document.getElementById('logo-upload-info').style.display='';
+    document.getElementById('logo-upload-info').textContent='✓ '+file.name+' siap diupload';
+    toast('Logo siap ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewLogo(src){
+  ['logo-preview-dark','logo-preview-light'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.src=src; }
+  });
+  document.getElementById('logo-preview-wrap').style.display='flex';
+}
+
+async function saveLogo(){
+  const urlInput = document.getElementById('logo-url-input').value.trim();
+  const imgData  = _logoUploadData || urlInput;
+  if(!imgData){ toast('Masukkan URL atau upload logo dulu ✗'); return; }
+  await window.FB.set(window.FB.ref(window.FB.db,'media/logo'),{ url:imgData, updatedAt:Date.now() });
+  document.getElementById('logo-status').textContent='Logo custom aktif';
+  document.getElementById('logo-status').className='badge b-green';
+  toast('Logo berhasil disimpan! ✓ — Refresh website untuk melihat');
+  _logoUploadData=null;
+}
+
+async function resetLogo(){
+  if(!confirm('Hapus logo custom dan pakai SVG default?')) return;
+  await window.FB.remove(window.FB.ref(window.FB.db,'media/logo'));
+  document.getElementById('logo-preview-wrap').style.display='none';
+  document.getElementById('logo-status').textContent='Menggunakan SVG default';
+  document.getElementById('logo-status').className='badge b-gray';
+  toast('Logo direset ke default.');
+}
+
+/* ── Update renderMediaPanel to handle logo ── */
+const _origRenderMediaPanel = window.renderMediaPanel || function(){};
+
+/* ═══════════════════════════════════════════
+   MEDIA PANEL — Hero & Gallery
+═══════════════════════════════════════════ */
+let _heroUploadData = null;
+let _gallerySlots   = [];
+
+/* ── Hero tab switch ── */
+function setHeroTab(tab){
+  document.getElementById('hero-url-panel').style.display    = tab==='url'    ? '' : 'none';
+  document.getElementById('hero-upload-panel').style.display = tab==='upload' ? '' : 'none';
+  document.getElementById('hero-tab-url-btn').className    = 'btn btn-sm ' + (tab==='url'    ? 'btn-primary' : 'btn-outline');
+  document.getElementById('hero-tab-upload-btn').className = 'btn btn-sm ' + (tab==='upload' ? 'btn-primary' : 'btn-outline');
+  if(tab==='url') _heroUploadData=null;
+}
+
+/* ── Hero file upload ── */
+function handleHeroFile(input){
+  const file=input.files[0]; if(!file) return;
+  if(file.size > 5*1024*1024){ toast('File terlalu besar (maks 5MB) ✗'); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _heroUploadData=e.target.result;
+    document.getElementById('hero-upload-preview').src=e.target.result;
+    document.getElementById('hero-upload-preview-wrap').style.display='';
+    document.getElementById('hero-upload-name').textContent=file.name + ' (' + (file.size/1024).toFixed(0) + 'KB)';
+    toast('Foto hero siap ✓');
+  };
+  reader.readAsDataURL(file);
+}
+function handleHeroDrop(e){
+  e.preventDefault();
+  document.getElementById('hero-drop').style.borderColor='';
+  const file=e.dataTransfer.files[0];
+  if(file){ const fakeInput={files:[file]}; handleHeroFile(fakeInput); }
+}
+
+/* ── Save hero ── */
+async function saveHeroPhoto(){
+  const urlInput = document.getElementById('hero-url-input').value.trim();
+  const imgData  = _heroUploadData || urlInput;
+  if(!imgData){ toast('Masukkan URL atau upload foto dulu ✗'); return; }
+  await window.FB.set(window.FB.ref(window.FB.db,'media/hero'), { url: imgData, updatedAt: Date.now() });
+  toast('Foto hero berhasil disimpan! ✓ — Refresh website untuk melihat perubahan');
+  _heroUploadData=null;
+}
+async function resetHeroPhoto(){
+  if(!confirm('Reset foto hero ke default?')) return;
+  await window.FB.remove(window.FB.ref(window.FB.db,'media/hero'));
+  toast('Foto hero direset ke default.');
+}
+
+/* ── Render media panel ── */
+function renderMediaPanel(data){
+  if(!document.getElementById('panel-media').classList.contains('active')) return;
+
+  // Logo
+  const logoData = data.logo;
+  if(logoData && logoData.url){
+    previewLogo(logoData.url);
+    document.getElementById('logo-status').textContent='Logo custom aktif';
+    document.getElementById('logo-status').className='badge b-green';
+  } else {
+    document.getElementById('logo-preview-wrap').style.display='none';
+    document.getElementById('logo-status').textContent='Menggunakan SVG default';
+    document.getElementById('logo-status').className='badge b-gray';
+  }
+
+  // Hero
+  const heroData = data.hero;
+  if(heroData && heroData.url){
+    document.getElementById('hero-current-img').src = heroData.url;
+    document.getElementById('hero-preview-wrap').style.display = '';
+    document.getElementById('hero-status').textContent='Foto custom aktif';
+    document.getElementById('hero-status').className='badge b-green';
+  } else {
+    document.getElementById('hero-preview-wrap').style.display='none';
+    document.getElementById('hero-status').textContent='Menggunakan foto default';
+    document.getElementById('hero-status').className='badge b-gray';
+  }
+
+  // Gallery
+  _gallerySlots = data.gallery ? Object.entries(data.gallery).map(([k,v])=>({key:k,...v})) : [];
+  // Ensure at least 5 slots
+  while(_gallerySlots.length < 5) _gallerySlots.push({key:null,url:'',label:'Foto '+(  _gallerySlots.length+1)});
+  renderGallerySlots();
+}
+
+/* ── Gallery slots UI ── */
+function renderGallerySlots(){
+  const container = document.getElementById('gallery-slots');
+  container.innerHTML = _gallerySlots.map((slot, idx) => `
+    <div style="border:1px solid var(--parch);padding:1rem;display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;" id="gslot-${idx}">
+      <!-- Preview -->
+      <div style="width:120px;height:80px;flex-shrink:0;background:#f3f4f6;border:1px solid var(--parch);overflow:hidden;position:relative;">
+        ${slot.url
+          ? `<img src="${slot.url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextSibling.style.display='flex'"/>
+             <div style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:#ccc;font-size:0.7rem;">Error</div>`
+          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;">
+               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+             </div>`}
+      </div>
+      <!-- Inputs -->
+      <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:0.5rem;">
+        <label style="font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--brn);">Foto ${idx+1} ${idx===0?'(Besar — Span 2 kolom)':''}</label>
+        <input class="form-input" id="gslot-url-${idx}" type="url" value="${slot.url||''}" placeholder="https://... URL foto"
+          onchange="updateGallerySlotUrl(${idx},this.value)"/>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span style="font-size:0.75rem;color:rgba(44,40,37,0.4);">atau</span>
+          <label style="display:inline-flex;align-items:center;gap:0.4rem;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brnl);background:var(--parch);padding:0.3rem 0.65rem;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Upload
+            <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload(${idx},this)"/>
+          </label>
+          <button class="btn btn-danger btn-xs" onclick="clearGallerySlot(${idx})">✕ Hapus</button>
+        </div>
+        <input class="form-input" id="gslot-label-${idx}" type="text" value="${slot.label||'Foto '+(idx+1)}" placeholder="Label foto (opsional)"
+          style="font-size:0.8rem;padding:0.4rem 0.65rem;" onchange="updateGallerySlotLabel(${idx},this.value)"/>
+      </div>
+    </div>`).join('');
+}
+
+function updateGallerySlotUrl(idx, url){
+  _gallerySlots[idx].url = url;
+  renderGallerySlots();
+}
+function updateGallerySlotLabel(idx, label){
+  _gallerySlots[idx].label = label;
+}
+function clearGallerySlot(idx){
+  _gallerySlots[idx].url = '';
+  _gallerySlots[idx].key = null;
+  renderGallerySlots();
+}
+function addGallerySlot(){
+  _gallerySlots.push({key:null, url:'', label:'Foto '+(_gallerySlots.length+1)});
+  renderGallerySlots();
+}
+function handleGalleryUpload(idx, input){
+  const file=input.files[0]; if(!file) return;
+  if(file.size > 3*1024*1024){ toast('File terlalu besar (maks 3MB) ✗'); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _gallerySlots[idx].url=e.target.result;
+    renderGallerySlots();
+    toast('Foto '+( idx+1)+' siap ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── Save all gallery ── */
+async function saveAllGallery(){
+  const btn=event.target; btn.disabled=true; btn.textContent='Menyimpan...';
+  try {
+    // Clear existing gallery
+    await window.FB.remove(window.FB.ref(window.FB.db,'media/gallery'));
+    // Save each slot that has URL
+    const saves = _gallerySlots
+      .filter(s=>s.url && s.url.trim())
+      .map((s,i)=>{
+        const r=window.FB.push(window.FB.ref(window.FB.db,'media/gallery'));
+        return window.FB.set(r,{ url:s.url.trim(), label:s.label||'Foto '+(i+1), order:i });
+      });
+    await Promise.all(saves);
+    toast('Gallery berhasil disimpan! ✓ — Refresh website untuk melihat perubahan');
+  } catch(e){ toast('Error menyimpan: '+e.message+' ✗'); }
+  btn.disabled=false; btn.textContent='💾 Simpan Semua Perubahan Gallery';
+}
+
+/* ── Init media panel if already on media page ── */
+document.addEventListener('DOMContentLoaded',function(){
+  if(window._mediaRaw) renderMediaPanel(window._mediaRaw);
+});
+
+// Init
+document.getElementById('stats-area').innerHTML=`
+  <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Menu</div></div>
+  <div class="stat-card"><div class="stat-num" id="stat-coffee">0</div><div class="stat-label">Coffee</div></div>
+  <div class="stat-card"><div class="stat-num" id="stat-nc">0</div><div class="stat-label">Non-Coffee</div></div>
+  <div class="stat-card"><div class="stat-num" id="stat-food">0</div><div class="stat-label">Food & Snacks</div></div>`;
+</script>
+
+<!-- ═══ WA FLOATING BUBBLE ═══ -->
+<div id="wa-bubble-wrap" style="position:fixed;bottom:1.75rem;right:1.75rem;z-index:8000;display:flex;flex-direction:column;align-items:flex-end;gap:0.65rem;">
+  <div id="wa-tooltip" style="display:none;background:white;border:1px solid #E8E2D4;padding:1.1rem 1.25rem;max-width:230px;box-shadow:0 8px 32px rgba(0,0,0,0.13);position:relative;border-radius:2px;">
+    <button onclick="document.getElementById('wa-tooltip').style.display='none'" style="position:absolute;top:0.4rem;right:0.6rem;background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(0,0,0,0.3);line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#25D366;flex-shrink:0;"></div>
+      <p style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:#4A7C59;">Online Sekarang</p>
+    </div>
+    <p style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:0.3rem;color:#1A3328;">Reservasi Fasilitas?</p>
+    <p style="font-size:0.78rem;color:rgba(30,27,24,0.55);line-height:1.6;margin-bottom:0.85rem;">Chat kami untuk booking Co-Working, Meeting Room, atau Studio Post Tropis.</p>
+    <a href="https://wa.me/6282189188918?text=Halo%20Post%20Tropis!%20Saya%20ingin%20reservasi%20fasilitas%20%F0%9F%99%8F" target="_blank"
+      style="display:flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;padding:0.65rem;background:#25D366;color:white;font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border-radius:1px;transition:background 0.2s;"
+      onmouseover="this.style.background='#1da851'" onmouseout="this.style.background='#25D366'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Chat Sekarang
+    </a>
+    <div style="position:absolute;bottom:-7px;right:20px;width:12px;height:12px;background:white;border-right:1px solid #E8E2D4;border-bottom:1px solid #E8E2D4;transform:rotate(45deg);"></div>
+  </div>
+  <button id="wa-bubble-btn" onclick="toggleWaBubble()"
+    style="width:58px;height:58px;border-radius:50%;background:#25D366;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,0.45);transition:transform 0.2s,box-shadow 0.2s;position:relative;"
+    onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"
+    aria-label="Chat WhatsApp Reservasi">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    <span style="position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(37,211,102,0.5);animation:waPulse 2s ease-out infinite;pointer-events:none;"></span>
+  </button>
+</div>
+
+<!-- Admin hint overlay -->
+<div id="admin-tap-hint" style="position:fixed;inset:0;z-index:8500;display:flex;align-items:center;justify-content:center;background:rgba(26,51,40,0.85);opacity:0;pointer-events:none;transition:opacity 0.35s;">
+  <div style="background:white;padding:2rem 2.5rem;text-align:center;max-width:300px;">
+    <div style="font-size:2rem;margin-bottom:0.75rem;">🔑</div>
+    <p style="font-family:'Playfair Display',serif;font-size:1.2rem;color:#1A3328;margin-bottom:0.35rem;">Membuka Admin…</p>
+    <p style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(26,51,40,0.5);">Redirect dalam 1 detik</p>
+  </div>
+</div>
+
+<script>
+/* ── WA Bubble ── */
+function toggleWaBubble(){
+  var t=document.getElementById('wa-tooltip');
+  if(t) t.style.display=t.style.display==='none'||t.style.display===''?'block':'none';
+}
+document.addEventListener('click',function(e){
+  var wrap=document.getElementById('wa-bubble-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    var t=document.getElementById('wa-tooltip');
+    if(t)t.style.display='none';
+  }
+});
+/* Auto show bubble after 4s on first visit */
+setTimeout(function(){
+  if(!sessionStorage.getItem('wa_shown')){
+    var t=document.getElementById('wa-tooltip');
+    if(t)t.style.display='block';
+    sessionStorage.setItem('wa_shown','1');
+  }
+},4000);
+
+/* ── Triple-tap logo → admin ── */
+(function(){
+  var taps=0, timer=null;
+  function onTap(e){
+    taps++;
+    clearTimeout(timer);
+    if(taps>=3){
+      taps=0;
+      var hint=document.getElementById('admin-tap-hint');
+      if(hint){hint.style.opacity='1';hint.style.pointerEvents='auto';}
+      setTimeout(function(){ window.location.href='admin.html'; },900);
+      return;
+    }
+    timer=setTimeout(function(){taps=0;},650);
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    var logo=document.getElementById('navbar-logo');
+    if(logo){
+      logo.addEventListener('click',onTap);
+      logo.addEventListener('touchend',function(e){e.preventDefault();onTap(e);},{passive:false});
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
